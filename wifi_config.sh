@@ -1,30 +1,32 @@
 #!/bin/bash
-# Wifi config by cyperghost for BATOCERA
+# WIFI CONFIG by cyperghost for BATOCERA
 # 2019/05/11
-# Credits to hiuit for the nice config setups
-# 
+# Credits to hiulit @RetroPie forum for the nice config setups
+# and helpfull RegEx setups
+#
 # There are seveal options to get your inputs
 # Input manual:
 # Select 1 and enter your PSK key with a keyboard connected or terminal
 # Select 2 and enter your WIFI SSID with keyboard connected or terminal
 #
-# Automatic inputs
-# Option 3 tries to read out presetted file with wifi credentials located in /boot/wifikeyfile.txt
+# Automatic inputs:
+# Option 3 tries to obtain presetted file with wifi credentials located in /boot/wifikeyfile.txt
 # you need to place your password and your ssid in a form like this
 # psk="my password to wifi"
 # ssid="my wlan SSID"
 #
-# The rest is is transfer or change your inputs to BATOCERA configfile
-# Option 4 - selects current wifislot. Batocera gots 3 of them, only the fist is visible in ES
-# Option 5 - Read the credentilas out from current slot (if active!)
+# The other options are for  transfer or change your inputs to BATOCERA configfile
+# Option 4 - selects current wifislot. Batocera gots 3 of them, only the first is visible in ES
+# Option 5 - Read the credentials out from current slot (if active!)
 # Option 6 - Writes the obtained credentials to current slot (if active)
 #
 # Option A - Activates current slot (it just removes the # remark)
+# Option C - Clean PSK and SSID for current slot (you need to select save)
 # Option D - Deactivates current slot (it sets the # remark)
 
 
 ##### pathes and main setup
-readonly BATOCERA_CONFIGFILE="$HOME/recalbox.conf"
+readonly BATOCERA_CONFIGFILE="$HOME/batocera.conf"
 readonly WIFI_KEYFILE="/boot/wifikeyfile.txt"
 #####
 ##### OPTIONS
@@ -33,7 +35,7 @@ readonly WIFI_KEYFILE="/boot/wifikeyfile.txt"
 
 array=("1" "PSK" "2" "SSID" "3" "Import from keyfile" "4" "SLOT" \
        "5" "Read credentials from current slot" "6" "Write credentials to current slot" \
-       "A" "Activate current slot" "D" "Deactivate current slot")
+       "A" "Activate current slot" "C" "Clean settings for current slot" "D" "Deactivate current slot")
 
 
 #####
@@ -166,17 +168,20 @@ while [[ $home -eq 0 ]]; do
         ;;
 
         A) # Activate current slot
-               rem_config "#wifi${SLOT}.key" "wifi${SLOT}.key" "$BATOCERA_CONFIGFILE"
-               rem_config "#wifi${SLOT}.ssid" "wifi${SLOT}.ssid" "$BATOCERA_CONFIGFILE"
-               
+           rem_config "#wifi${SLOT}.key" "wifi${SLOT}.key" "$BATOCERA_CONFIGFILE"
+           rem_config "#wifi${SLOT}.ssid" "wifi${SLOT}.ssid" "$BATOCERA_CONFIGFILE"
+        ;;
+
+        C) # Clean current slot
+            PSK= ; SSID=
+            msg_box "PSK and SSID are cleaned!\nSelect \"6 Write credentials to current slot\""
         ;;
 
         D) # Deactivate current slot
-               rem_config "wifi${SLOT}.key" "#wifi${SLOT}.key" "$BATOCERA_CONFIGFILE"
-               rem_config "wifi${SLOT}.ssid" "#wifi${SLOT}.ssid" "$BATOCERA_CONFIGFILE"
-               PSK= ;SSID=
+            rem_config "wifi${SLOT}.key" "#wifi${SLOT}.key" "$BATOCERA_CONFIGFILE"
+            rem_config "wifi${SLOT}.ssid" "#wifi${SLOT}.ssid" "$BATOCERA_CONFIGFILE"
+            PSK= ;SSID=
         ;;
 
     esac
-
 done
