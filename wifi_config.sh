@@ -1,6 +1,6 @@
 #!/bin/bash
 # WIFI CONFIG by cyperghost for BATOCERA
-# 2019/05/11
+# 2019/05/22
 # Credits to hiulit @RetroPie forum for the nice config setups
 # and helpfull RegEx setups
 #
@@ -28,6 +28,8 @@
 ##### pathes and main setup
 readonly BATOCERA_CONFIGFILE="$HOME/batocera.conf"
 readonly WIFI_KEYFILE="/boot/wifikeyfile.txt"
+systemsetting="python /usr/lib/python2.7/site-packages/configgen/settings/batoceraSettings.py"
+
 #####
 ##### OPTIONS
 ##### Read wifikeyfile, setup wifikey manual write to batocera.config
@@ -44,18 +46,18 @@ array=("1" "PSK" "2" "SSID" "3" "Import from keyfile" "4" "SLOT" \
 #####
 
 
-# These are main whiptail functions, first parameter is always message text
+# These are main dialog functions, first parameter is always message text
 # USAGE:
 # function input_box "[TEXT]" "[DEFAULTVALUE]" - shows you a input box
 # function msg_box "[TEXT"] - shows a small box with OK button to close
 
 function input_box() {
-    local val=$(whiptail --inputbox "$1" --cancel-button "Clear" 10 50 "$2" 3>&1 1>&2 2>&3)
+    local val=$(dialog --stdout --inputbox "$1" 0 0 $2)
     echo "$val"
 }
 
 function msg_box() {
-    whiptail --msgbox "$1" 10 50 3>&1 1>&2 2>&3
+    dialog --stdout --msgbox "$1" 10 50
 }
 
 # If you are using the config file, uncomment set_config() and get_config().
@@ -70,11 +72,7 @@ function set_config() {
 }
 
 function get_config() {
-    local config
-    config="$(grep -Po "(?<=^$1=).*" "$2")"
-    config="${config%\"}"
-    config="${config#\"}"
-    echo "$config"
+    $systemsetting -command load -key "$1" 2> /dev/null
 }
 
 function rem_config() {
@@ -87,7 +85,7 @@ function rem_config() {
 # slot_state "[SLOTNUMBER]" - Returns boolean if values are readable
 
 function slot_state() {
-    local config="$(grep -Po -c "^$1" "$2")"
+    local config="$(grep -E -c "^$1" "$2")"
     echo $config
 }
 
@@ -112,9 +110,9 @@ while [[ $home -eq 0 ]]; do
     [[ $(slot_state wifi${SLOT}.ssid "$BATOCERA_CONFIGFILE") -eq 0 ]] && slotstate="deactivated" || slotstate="activated"
     [[ -z "$SLOT" ]] && array[7]="Slot set: 1 - Status: $slotstate" || array[7]="Slot set: $SLOT - Status: $slotstate"    
 
-    # Whiptail dialog begin
-    cmd=(whiptail --title " Wifi Key Config " --ok-button "Select" --menu "Select your options" 18 70 0)
-    choices=$("${cmd[@]}" "${array[@]}" 3>&1 1>&2 2>&3)
+    # dialog dialog begin
+    cmd=(dialog --stdout --title " Wifi Key Config " --ok-button "Select" --menu "Select your options" 0 0 0)
+    choices=$("${cmd[@]}" "${array[@]}")
     home=$?
 
     # Case selection of choice
@@ -151,8 +149,8 @@ while [[ $home -eq 0 ]]; do
 
         5) # Read Value from SLOT
            if [[ $slotstate == "activated" ]]; then
-               PSK=$(get_config "wifi${SLOT}.key" "$BATOCERA_CONFIGFILE")
-               SSID=$(get_config "wifi${SLOT}.ssid" "$BATOCERA_CONFIGFILE")
+               PSK=$(get_config "wifi${SLOT}.key")
+               SSID=$(get_config "wifi${SLOT}.ssid")
            else
                msg_box "Activate Slot first!"
            fi
@@ -168,6 +166,7 @@ while [[ $home -eq 0 ]]; do
         ;;
 
         A) # Activate current slot
+           echo "#wifi${SLOT}.key" && sleep 1
            rem_config "#wifi${SLOT}.key" "wifi${SLOT}.key" "$BATOCERA_CONFIGFILE"
            rem_config "#wifi${SLOT}.ssid" "wifi${SLOT}.ssid" "$BATOCERA_CONFIGFILE"
         ;;
