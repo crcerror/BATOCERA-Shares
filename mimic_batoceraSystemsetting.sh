@@ -11,19 +11,23 @@
 #           -value      any alphanumerical string
 #                       use quotation marks to avoid globbing use slashe escape special characters 
 
-# This script reads only 1st occourance if string and writes only to 1st occurance
-# So 10 entries overwritten with system.power.switch will never occour again.
+# This script reads only 1st occourance of string and writes only to 1st occurance
+# So 10 entries overwritten with system.power.switch=RETROFLAG will never occour again.
 #
-# This script uses #-Character to comment vales
+# This script uses #-character to comment values
 #
-# If there is a bolean value (0,1) then then enable and disable command will set the correspondending
-# boolean value.
+# If there is a bolean value (0,1) then enable and disable command will set the
+# correspondending boolean value.
 
 # Examples:
 # ./batoceraSettings.sh -command load -key wifi.enabled will print out 0 or 1
 # ./batoceraSettings.sh -command write -key wifi.ssid -value "This is my NET" will set wlan.ssid=This is my NET
 # ./batoceraSettings.sh -command enable -key wifi.ssid will remove # from  configfile (activate)
 # ./batoceraSettings.sh -command disable -key wifi.enabled will set key wifi.enabled=0
+
+# Greetings some special people:
+# hiulit for his bash BOILERPLATE script which inspires me a lot in handling sed comman
+# Moreover the insane coder meleu, he made my bash journey starting - hope he is well at all
 
 readonly BATOCERA_CONFIGFILE="/userdata/system/batocera.conf"
 readonly COMMENT_CHAR="#"
