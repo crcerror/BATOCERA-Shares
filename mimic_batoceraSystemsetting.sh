@@ -113,14 +113,13 @@ case "$command" in
     ;;
 
     "set"|"write")
-        [[ ${1,,} != "-value" ]] && usage
+        [[ ${1,,} != "-value" ]] && usage && exit 1
         check_argument $1 $2
         [[ $? -eq 0 ]] || exit 1
 
         val="$(get_config $keyvalue)"
         if [[ "$val" == "$COMMENT_CHAR" ]]; then
             uncomment_config "$keyvalue"
-            val="$(get_config $keyvalue)"
             set_config "$keyvalue" "$2"
         elif [[ -z "$val" ]]; then
             echo "$keyvalue: not found!"
@@ -156,6 +155,11 @@ case "$command" in
 
     "-h"|"--help")
         usage
+        echo " Examples:
+   ./batoceraSettings.sh -command load -key wifi.enabled will print out 0 or 1
+   ./batoceraSettings.sh -command write -key wifi.ssid -value "This is my NET" will set wlan.ssid=This is my NET
+   ./batoceraSettings.sh -command enable -key wifi.ssid will remove # from  configfile (activate)
+   ./batoceraSettings.sh -command disable -key wifi.enabled will set key wifi.enabled=0"
     ;;
 
     *)
