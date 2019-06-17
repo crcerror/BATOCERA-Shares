@@ -1,4 +1,4 @@
-#!/bin/bash#!/bin/bash
+#!/bin/bash
 
 # Mimic batoceraSettings.py
 # goal: abbolish this python script, it's useless for the sake of the load feature only
