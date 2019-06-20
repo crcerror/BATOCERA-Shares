@@ -1,0 +1,48 @@
+#!/bin/bash
+# Setup Credentials for WIFI
+#
+# To import credentials enter open batocera-boot.conf (this file is visible in FAT32 in windows systems)
+# and remove comments and enter your credentials, now boot BATOCERA and
+# activate WiFi in EmulationStation, reboot and voila wifi credentials are imported to wifi2 settings
+#
+# batocera-boot.conf is available in /boot and cotain following structure
+# REMOVE # in batocera-boot.conf to activate import feature!
+# wifi.import.key=write your key here
+# wifi.import.ssid=set your wifi SSID here
+#
+# Triggers for activating this script
+# 1. Wifi must be activated by ES
+# 2. File /boot/batocera-boot.conf contains activated wifi credentials
+# 3. Values of /boot/batocera-boot.conf are not equal to batocera.conf
+
+#
+# This demonstrates usage of config-parser --> https://github.com/crcerror/BATOCERA-Shares/tree/master/conf-parser
+#
+
+systemsetting="python /userdata/system/scripts/batoceraSettings.py"
+WIFI_KEYFILE="/boot/batocera-boot.conf"
+COMMENT_CHAR="#"
+
+function get_config() {
+     local val
+     val="$(grep -E -m1 ^$COMMENT_CHAR?\s*$1 $2)"
+     [[ "${val:0:1}" == "$COMMENT_CHAR" ]] && val="$COMMENT_CHAR"
+     val="${val#*=}"
+     echo "$val"
+}
+
+[[ "$1" == "stop" ]] || exit                                            #Only start with stop parameter paresed during /etc/init.d/ shutdown
+[[ $($systemsetting -command load -key wifi.enabled) -eq 1 ]] || exit   #If WiFi is disabled then exit 
+
+psk="$(get_config wifi.import.key "$WIFI_KEYFILE")"
+ssid="$(get_config wifi.import.ssid "$WIFI_KEYFILE")"
+
+[[ "$psk" == "$COMMENT_CHAR" ]] && exit                                 #If key in batocera-boot.conf is activated
+[[ "$ssid" == "$COMMENT_CHAR" ]] && exit                                #If key in batocera-boot.conf is activated
+
+# This will work even if key is commented out the key will be activated
+[[ "$($systemsetting -command load -key wifi3.ssid)" != "$ssid" ]] || exit
+[[ "$($systemsetting -command load -key wifi3.key)" != "$psk" ]] || exit
+
+[[ -n $psk ]] && $systemsetting -command write -key wifi3.key -value "$psk"
+[[ -n $ssid ]] && $systemsetting -command write -key wifi3.ssid -value "$ssid"
