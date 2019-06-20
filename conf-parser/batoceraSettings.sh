@@ -118,7 +118,6 @@ function main() {
             val="$(get_config $keyvalue)"
             if [[ "$val" == "$COMMENT_CHAR" ]]; then
                 uncomment_config "$keyvalue"
-                val="$(get_config $keyvalue)"
                 set_config "$keyvalue" "$2"
             elif [[ -z "$val" ]]; then
                 echo "$keyvalue: not found!"
@@ -162,13 +161,18 @@ function main() {
 # Prepare arrays from fob python script
 # Delimiter is |
 # Keyword for python call is mimic_python
+# Attention the unset is needed to eliminate first argment (python basefile)
+# and the last call is a tralining \n, therefore the "$1|" construct!
 
 if [[ "${#@}" -eq 1 && "$1" =~ "mimic_python" ]]; then
-   readarray -d "|" -t arr <<< "$1"
+   #batoceraSettings.py fob
+   readarray -d "|" -t arr <<< "$1|"
    unset arr[0]
+   unset arr[-1]
 else
+   #regular call by shell
    arr=("$@")
 fi
 
-main "${arr[@]}"   
 
+main "${arr[@]}"
