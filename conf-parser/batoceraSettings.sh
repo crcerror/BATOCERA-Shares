@@ -4,9 +4,9 @@
 # goal: abbolish this python script, it's useless for the sake of the load feature only
 #
 # Usage of BASE COMMAND:
-#           -command <value> -key <value> -value <value>
+#           <filename> -command <cmd> -key <key> -value <value>
 #
-#           -command    load write enable disable
+#           -command    load write enable disable status
 #           -key        any key in batocera.conf (kodi.enabled...)
 #           -value      any alphanumerical string
 #                       use quotation marks to avoid globbing use slashe escape special characters 
@@ -25,8 +25,8 @@
 # ./batoceraSettings.sh -command enable -key wifi.ssid will remove # from  configfile (activate)
 # ./batoceraSettings.sh -command disable -key wifi.enabled will set key wifi.enabled=0
 
-readonly BATOCERA_CONFIGFILE="/userdata/system/batocera.conf"
-readonly COMMENT_CHAR="#"
+BATOCERA_CONFIGFILE="/userdata/system/batocera.conf"
+COMMENT_CHAR="#"
 
 function get_config() {
      #Will look for key.value and #key.value for only one occourance
@@ -73,14 +73,20 @@ function check_argument() {
 function usage() {
 val=" Usage of BASE COMMAND:
 
-           -command <value> -key <value> -value <value>
+           <file> -command <cmd> -key <key> -value <value>
 
-           -command    load write enable disable
+           -command    load write enable disable status
            -key        any key in batocera.conf (kodi.enabled...)
            -value      any alphanumerical string
                        use quotation marks to avoid globbing
 
-           For write command -value <value> must be provided"
+           For write command -value <value> must be provided
+
+           status codes: exit 0 = value is available, proper exit
+                         exit 1 = value not found at, all error
+                         exit 2 = value found, but not activated
+
+           If you don't set a filename then default is '~/batocera.conf'"
 
 echo "$val"
 
@@ -89,7 +95,15 @@ echo "$val"
 # MAIN
 function main() {
 
-    [[ -e "$BATOCERA_CONFIGFILE" ]] || exit 2
+    #Filename parsed?
+    if [[ "${1,,}" != "-command" ]]; then
+        [[ -w "$1" && -f "$1" ]] || echo "not found or r/o: $1" && exit 2
+        BATOCERA_CONFIGFILE="$1"
+        shift
+    else
+        [[ -f "$BATOCERA_CONFIGFILE" ]] || echo "not found: $BATOCERA_CONFIGFILE" && exit 2
+    fi
+
     [[ "${1,,}" != "-command" ]] && usage && exit 1
     check_argument $1 $2
     [[ $? -eq 0 ]] || exit 1
@@ -107,7 +121,16 @@ function main() {
 
         "read"|"get"|"load")
             val="$(get_config $keyvalue)"
-            [[ -n "$val" ]] && echo "$val" || echo "$keyvalue: not found!"
+           [[ "$val" == "$COMMENT_CHAR" ]] && exit 2
+           [[ -z "$val" ]] && exit 1
+           [[ -n "$val" ]] && echo "$val" && exit 0
+        ;;
+
+        "stat"|"status")
+            val="$(get_config $keyvalue)"
+            [[ "$val" == "$COMMENT_CHAR" ]] && echo "$keyvalue: hashed out! exit 2" >&2 && exit 2
+            [[ -z "$val" ]] && echo "$keyvalue: not found! exit 1" >&2 && exit 1
+            [[ -n "$val" ]] && echo "$keyvalue: $val" >&2 && exit 0
         ;;
 
         "set"|"write")
@@ -117,24 +140,28 @@ function main() {
 
             val="$(get_config $keyvalue)"
             if [[ "$val" == "$COMMENT_CHAR" ]]; then
+                echo "$keyvalue: hashed out!" >&2
                 uncomment_config "$keyvalue"
                 set_config "$keyvalue" "$2"
+                echo "$keyvalue: set to $2" >&2
             elif [[ -z "$val" ]]; then
-                echo "$keyvalue: not found!"
+                echo "$keyvalue: not found!" >&2
             elif [[ "$val" != "$2" ]]; then
                 set_config "$keyvalue" "$2"
-            fi
+             fi
         ;;
 
         "uncomment"|"enable"|"activate")
             val="$(get_config $keyvalue)"
             # Boolean
             if [[ "$val" == "$COMMENT_CHAR" ]]; then
-                uncomment_config "$keyvalue"
+                 uncomment_config "$keyvalue"
+                 echo "$keyvalue: removed '$COMMENT_CHAR', key is active" >&2
             elif [[ "$val" == "0" ]]; then
                  set_config "$keyvalue" "1"
+                 echo "$keyvalue: boolean set '1'" >&2
             elif [[ -z "$val" ]]; then
-                 echo "$keyvalue: not found!"
+                 echo "$keyvalue: not found!" && exit 1
             fi
         ;;
 
@@ -143,11 +170,13 @@ function main() {
             # Boolean
             [[ "$val" == "$COMMENT_CHAR" || "$val" == "0" ]] && exit 0
             if [[ -z "$val" ]]; then
-                echo "$keyvalue: not found!"
+                echo "$keyvalue: not found!" >&2 && exit 1
             elif [[ "$val" == "1" ]]; then
                  set_config "$keyvalue" "0"
+                 echo "$keyvalue: boolean set to '0'" >&2
             else
                  comment_config "$keyvalue"
+                 echo "$keyvalue: added '$COMMENT_CHAR', key is not active" >&2
             fi
         ;;
 
@@ -173,6 +202,5 @@ else
    #regular call by shell
    arr=("$@")
 fi
-
 
 main "${arr[@]}"
