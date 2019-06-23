@@ -33,7 +33,7 @@ function get_config() {
      #If the character is the COMMENT CHAR then set value to it
      #Otherwise strip to equal-char
     local val
-    val="$(grep -E -m1 ^$COMMENT_CHAR?\s*$1 $BATOCERA_CONFIGFILE)"
+    val="$(grep -E -m1 ^$COMMENT_CHAR?\s*$1\s*= $BATOCERA_CONFIGFILE)"
     if [[ "${val:0:1}" == "$COMMENT_CHAR" ]]; then
          val="$COMMENT_CHAR"
     else
