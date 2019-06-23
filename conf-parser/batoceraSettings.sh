@@ -96,14 +96,12 @@ echo "$val"
 function main() {
 
     #Filename parsed?
-    if [[ "${1,,}" != "-command" ]]; then
-        [[ -w "$1" && -f "$1" ]] || echo "not found or r/o: $1" && exit 2
+    if [[ "${2,,}" == "-command" && -f "$1" ]]; then
         BATOCERA_CONFIGFILE="$1"
-        shift
-    else
-        [[ -f "$BATOCERA_CONFIGFILE" ]] || echo "not found: $BATOCERA_CONFIGFILE" && exit 2
+        shift 
     fi
 
+    ! [[ -f "$BATOCERA_CONFIGFILE" ]] && echo "not found: $BATOCERA_CONFIGFILE" >&2 && exit 2
     [[ "${1,,}" != "-command" ]] && usage && exit 1
     check_argument $1 $2
     [[ $? -eq 0 ]] || exit 1
@@ -128,15 +126,20 @@ function main() {
 
         "stat"|"status")
             val="$(get_config $keyvalue)"
-            [[ "$val" == "$COMMENT_CHAR" ]] && echo "$keyvalue: hashed out! exit 2" >&2 && exit 2
-            [[ -z "$val" ]] && echo "$keyvalue: not found! exit 1" >&2 && exit 1
-            [[ -n "$val" ]] && echo "$keyvalue: $val" >&2 && exit 0
+            [[ -f "$BATOCERA_CONFIGFILE" ]] && echo "ok: found '$BATOCERA_CONFIGFILE'" >&2|| echo "error: not found '$BATOCERA_CONFIGFILE'" >&2
+            [[ -w "$BATOCERA_CONFIGFILE" ]] && echo "ok: r/w file '$BATOCERA_CONFIGFILE'" >&2 || echo "error: r/o file '$BATOCERA_CONFIGFILE'" >&2
+            [[ -z "$val" ]] && echo "error: '$keyvalue' not found!" >&2
+            [[ "$val" == "$COMMENT_CHAR" ]] && echo "error: '$keyvalue' is commented $COMMENT_CHAR!" >&2 && val=
+            [[ -n "$val" ]] && echo "ok: '$keyvalue' $val" || echo "error: '$keyvalue' not available" >&2
+            exit 0
         ;;
 
-        "set"|"write")
+        "set"|"write"|"save")
             [[ ${1,,} != "-value" ]] && usage && exit 1
             check_argument $1 $2
             [[ $? -eq 0 ]] || exit 1
+
+            [[ -w "$BATOCERA_CONFIGFILE" ]] || echo "r/o only: $BATOCERA_CONFIGFILE" >&2 && exit 2
 
             val="$(get_config $keyvalue)"
             if [[ "$val" == "$COMMENT_CHAR" ]]; then
