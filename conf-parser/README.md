@@ -19,6 +19,33 @@
  
  ### Usage of ADVANCED COMMANDS
 
+**filename**
+
+```
+            Write here the file you want to process, the script will check file presence
+            and will check write protection (to save values)
+            
+```
+
+**stat, status**
+
+Sample output 1
+```
+# ./batoceraSettings.sh -command status -key wifi.key
+ok: found '/userdata/system/batocera.conf'
+ok: r/w file '/userdata/system/batocera.conf'
+ok: 'wifi.key' new key
+```
+
+Sample output2
+```
+# ./batoceraSettings.sh -command status -key wifi.ssid
+ok: found '/userdata/system/batocera.conf'
+ok: r/w file '/userdata/system/batocera.conf'
+error: 'wifi.ssid' is commented #!
+error: 'wifi.ssid' not available
+```
+
 **load, get, read**
 
            -command
