@@ -82,9 +82,11 @@ val=" Usage of BASE COMMAND:
 
            For write command -value <value> must be provided
 
-           status codes: exit 0 = value is available, proper exit
-                         exit 1 = value not found at, all error
-                         exit 2 = value found, but not activated
+           exit codes: exit 0  = value is available, proper exit
+                       exit 1  = general error
+                       exit 2  = file error
+                       exit 11 = value found, but not activated
+                       exit 12 = value not found 
 
            If you don't set a filename then default is '~/batocera.conf'"
 
@@ -119,8 +121,8 @@ function main() {
 
         "read"|"get"|"load")
             val="$(get_config $keyvalue)"
-           [[ "$val" == "$COMMENT_CHAR" ]] && exit 2
-           [[ -z "$val" ]] && exit 1
+           [[ "$val" == "$COMMENT_CHAR" ]] && exit 11
+           [[ -z "$val" ]] && exit 12
            [[ -n "$val" ]] && echo "$val" && exit 0
         ;;
 
@@ -147,11 +149,14 @@ function main() {
                 uncomment_config "$keyvalue"
                 set_config "$keyvalue" "$2"
                 echo "$keyvalue: set to $2" >&2
+                exit 0
             elif [[ -z "$val" ]]; then
                 echo "$keyvalue: not found!" >&2
+                exit 12
             elif [[ "$val" != "$2" ]]; then
                 set_config "$keyvalue" "$2"
-             fi
+                exit 0 
+            fi
         ;;
 
         "uncomment"|"enable"|"activate")
@@ -164,7 +169,7 @@ function main() {
                  set_config "$keyvalue" "1"
                  echo "$keyvalue: boolean set '1'" >&2
             elif [[ -z "$val" ]]; then
-                 echo "$keyvalue: not found!" && exit 1
+                 echo "$keyvalue: not found!" && exit 2
             fi
         ;;
 
@@ -173,7 +178,7 @@ function main() {
             # Boolean
             [[ "$val" == "$COMMENT_CHAR" || "$val" == "0" ]] && exit 0
             if [[ -z "$val" ]]; then
-                echo "$keyvalue: not found!" >&2 && exit 1
+                echo "$keyvalue: not found!" >&2 && exit 12
             elif [[ "$val" == "1" ]]; then
                  set_config "$keyvalue" "0"
                  echo "$keyvalue: boolean set to '0'" >&2
@@ -185,7 +190,7 @@ function main() {
 
         *)
             echo "ERROR: invalid command '$command'" >&2
-            exit 2
+            exit 1
         ;;
     esac
 }
