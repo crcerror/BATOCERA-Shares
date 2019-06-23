@@ -141,7 +141,7 @@ function main() {
             check_argument $1 $2
             [[ $? -eq 0 ]] || exit 1
 
-            [[ -w "$BATOCERA_CONFIGFILE" ]] || echo "r/o only: $BATOCERA_CONFIGFILE" >&2 && exit 2
+            ! [[ -w "$BATOCERA_CONFIGFILE" ]] && echo "r/o only: $BATOCERA_CONFIGFILE" >&2 && exit 2
 
             val="$(get_config $keyvalue)"
             if [[ "$val" == "$COMMENT_CHAR" ]]; then
