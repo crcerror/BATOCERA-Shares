@@ -1,4 +1,4 @@
-#BATOCERA config parser
+# BATOCERA config parser
 
 ## Usage
 
@@ -19,7 +19,7 @@
  
  ### Usage of ADVANCED COMMANDS
 
-**filename**
+**file**
 
 ```
             Write here the file you want to process, the script will check file presence
