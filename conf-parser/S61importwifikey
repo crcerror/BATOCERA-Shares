@@ -19,26 +19,18 @@
 # This demonstrates usage of config-parser --> https://github.com/crcerror/BATOCERA-Shares/tree/master/conf-parser
 #
 
-systemsetting="python /userdata/system/scripts/batoceraSettings.py"
+systemsetting="python /usr/lib/python2.7/site-packages/configgen/settings/batoceraSettings.py"
 WIFI_KEYFILE="/boot/batocera-boot.conf"
 COMMENT_CHAR="#"
 
-function get_config() {
-     local val
-     val="$(grep -E -m1 ^$COMMENT_CHAR?\s*$1 $2)"
-     [[ "${val:0:1}" == "$COMMENT_CHAR" ]] && val="$COMMENT_CHAR"
-     val="${val#*=}"
-     echo "$val"
-}
+[[ "$1" == "stop" ]] || exit                                                #Only start with 'stop' parameter parsed during /etc/init.d/ shutdown
+[[ $($systemsetting -command load -key wifi.enabled) -eq 1 ]] || exit       #If WiFi is disabled then exit 
 
-[[ "$1" == "stop" ]] || exit                                            #Only start with stop parameter paresed during /etc/init.d/ shutdown
-[[ $($systemsetting -command load -key wifi.enabled) -eq 1 ]] || exit   #If WiFi is disabled then exit 
+psk="$($systemsetting $WIFI_KEYFILE -command load -key wifi.import.key)"    #Get PSK from batocera-boot.conf, with batoceraSettings script
+ssid="$($systemsetting $WIFI_KEYFILE -command load -key wifi.import.ssid)"  #Get SSID from batocera-boot.conf, with batoceraSettings script
 
-psk="$(get_config wifi.import.key "$WIFI_KEYFILE")"
-ssid="$(get_config wifi.import.ssid "$WIFI_KEYFILE")"
-
-[[ "$psk" == "$COMMENT_CHAR" ]] && exit                                 #If key in batocera-boot.conf is activated
-[[ "$ssid" == "$COMMENT_CHAR" ]] && exit                                #If key in batocera-boot.conf is activated
+[[ "$psk" == "$COMMENT_CHAR" ]] && exit                                     #If key in batocera-boot.conf is activated
+[[ "$ssid" == "$COMMENT_CHAR" ]] && exit                                    #If key in batocera-boot.conf is activated
 
 # This will work even if key is commented out the key will be activated
 [[ "$($systemsetting -command load -key wifi3.ssid)" != "$ssid" ]] || exit
