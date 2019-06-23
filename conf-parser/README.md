@@ -19,7 +19,7 @@
  
  ### Usage of ADVANCED COMMANDS
 
-**file**
+- **file**
 
 ```
             Write here the file you want to process, the script will check file presence
@@ -27,9 +27,9 @@
             
 ```
 
-**stat, status**
+- **stat, status**
 
-Sample output 1
+*Sample output 1*
 ```
 # ./batoceraSettings.sh -command status -key wifi.key
 ok: found '/userdata/system/batocera.conf'
@@ -37,7 +37,7 @@ ok: r/w file '/userdata/system/batocera.conf'
 ok: 'wifi.key' new key
 ```
 
-Sample output2
+*Sample output2*
 ```
 # ./batoceraSettings.sh -command status -key wifi.ssid
 ok: found '/userdata/system/batocera.conf'
@@ -46,7 +46,7 @@ error: 'wifi.ssid' is commented #!
 error: 'wifi.ssid' not available
 ```
 
-**load, get, read**
+- **load, get, read**
 
            -command
               load, get, read: will read out given keyvalue
@@ -57,7 +57,7 @@ error: 'wifi.ssid' not available
               
               This will result in an output 'value'
               
-**save, set, write**
+- **save, set, write**
 
            -command
               save, set, write: will write keyvalue to setted key
@@ -69,17 +69,17 @@ error: 'wifi.ssid' not available
            -value
                Type here your value you want to set to key.name
                
-            Attention: for save command, the file must be writeable and the key you want to set must be available
-                       If the key is commented out then the save command will automatically activate for you.
-                       The key itself MUST be available.
+            Attention: for save command, the file must be writeable and the key you want to set has
+                       to be available. If the key is commented out then the save command will automatically 
+                       activate for you. The key itself HAS TO BE be available.
 
-**uncomment**
+- **uncomment**
 
-**comment**
+- **comment**
 
 
 
-**exit codes**
+- **exit codes**
  
            exit codes: exit 0  = value is available, proper exit
                        exit 1  = general error
