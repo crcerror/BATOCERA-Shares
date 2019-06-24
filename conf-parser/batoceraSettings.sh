@@ -98,32 +98,35 @@ echo "$val"
 function main() {
 
     #Filename parsed?
-    if [[ "${2,,}" == "-command" && -f "$1" ]]; then
+    if [[ -f "$1" ]]; then
         BATOCERA_CONFIGFILE="$1"
         shift 
+    else
+       [[ -f "$BATOCERA_CONFIGFILE" ]] || { echo "not found: $BATOCERA_CONFIGFILE" >&2; exit 2; }
     fi
 
-    ! [[ -f "$BATOCERA_CONFIGFILE" ]] && echo "not found: $BATOCERA_CONFIGFILE" >&2 && exit 2
+    #First command line parameter set, shift 2
     [[ "${1,,}" != "-command" ]] && usage && exit 1
     check_argument $1 $2
     [[ $? -eq 0 ]] || exit 1
     command="$2"
     shift 2
 
+    #Second command line parameter set, shift
     [[ "${1,,}" != "-key" ]] && usage && exit 1
     check_argument $1 $2
     [[ $? -eq 0 ]] || exit 1
     keyvalue="$2"
     shift 2
 
-    # value processing
+    # value processing, switch case
     case "$command" in
 
         "read"|"get"|"load")
             val="$(get_config $keyvalue)"
-           [[ "$val" == "$COMMENT_CHAR" ]] && exit 11
-           [[ -z "$val" ]] && exit 12
-           [[ -n "$val" ]] && echo "$val" && exit 0
+            [[ "$val" == "$COMMENT_CHAR" ]] && echo "$val" >&2 && exit 11
+            [[ -z "$val" ]] && exit 12
+            [[ -n "$val" ]] && echo "$val" && exit 0
         ;;
 
         "stat"|"status")
@@ -198,14 +201,12 @@ function main() {
 # Prepare arrays from fob python script
 # Delimiter is |
 # Keyword for python call is mimic_python
-# Attention the unset is needed to eliminate first argment (python basefile)
-# and the last call is a tralining \n, therefore the "$1|" construct!
+# Attention the unset is needed to eliminate first argument (python basefile)
 
 if [[ "${#@}" -eq 1 && "$1" =~ "mimic_python" ]]; then
    #batoceraSettings.py fob
-   readarray -d "|" -t arr <<< "$1|"
+   readarray -t arr <<< "$1"
    unset arr[0]
-   unset arr[-1]
 else
    #regular call by shell
    arr=("$@")
