@@ -86,3 +86,37 @@ error: 'wifi.ssid' not available
                        exit 2  = file error
                        exit 11 = value found, but not activated
                        exit 12 = value not found 
+
+## The need for speed?
+
+```
+Model Raspberry 3A+
+
+1. Original script
+# time python batoceraSettings.py.bak -command load -key wifi.key
+2019-06-24 19:34:17 DEBUG (unixSettings.py:21):__init__(): Creating parser for /userdata/system/batocera.conf
+2019-06-24 19:34:17 DEBUG (unixSettings.py:43):load(): Looking for wifi.key in /userdata/system/batocera.conf
+new key
+real    0m0.136s
+user    0m0.107s
+sys     0m0.029s
+
+2. crcerrors fob python script (python interpreter is called, then arguments are parsed to bash script)
+# time python batoceraSettings.py -command load -key wifi.key
+new key
+
+real    0m0.069s
+user    0m0.057s
+sys     0m0.013s
+#
+
+
+3. crcerrors bash script, arguments are directly parsed to script
+# time bash batoceraSettings.sh -command load -key wifi.key
+new key
+
+real    0m0.018s
+user    0m0.013s
+sys     0m0.005s
+#
+```
