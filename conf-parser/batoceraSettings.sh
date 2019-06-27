@@ -1,35 +1,44 @@
 #!/bin/bash
 
-# batoceraSettings.sh to mimic batoceraSettings.py
-# goal: abbolish this python script, it's useless for the sake of the load feature only
+# batocera-settings can mimic batoceraSettings.py
+# goal: abolish this python script, it's useless for the sake of the load feature only
+#       get a more user friendly environment for setting, getting and saving keys
 #
 # Usage of BASE COMMAND:
-#           <filename> -command <cmd> -key <key> -value <value>
+#           longform:   <filename> --command <cmd> --key <key> --value <value>
 #
-#           -command    load write enable disable status
-#           -key        any key in batocera.conf (kodi.enabled...)
-#           -value      any alphanumerical string
-#                       use quotation marks to avoid globbing use slashe escape special characters 
+#           shortform:  <file> <cmd> <key> <value>
+#
+#           --command    load write enable disable status
+#           --key        any key in batocera.conf (kodi.enabled...)
+#           --value      any alphanumerical string
+#                        use quotation marks to avoid globbing use slashes escape special characters 
 
-# This script reads only 1st occourance if string and writes only to 1st occurance
-# So 10 entries overwritten with system.power.switch will never occour again.
+# This script reads only 1st occurrence if string and writes only to 1st occurrence
 #
-# This script uses #-Character to comment vales
+# This script uses #-Character to comment values
 #
-# If there is a bolean value (0,1) then then enable and disable command will set the correspondending
+# If there is a boolean value (0,1) then then enable and disable command will set the corresponding
 # boolean value.
 
 # Examples:
-# ./batoceraSettings.sh -command load -key wifi.enabled will print out 0 or 1
-# ./batoceraSettings.sh -command write -key wifi.ssid -value "This is my NET" will set wlan.ssid=This is my NET
-# ./batoceraSettings.sh -command enable -key wifi.ssid will remove # from  configfile (activate)
-# ./batoceraSettings.sh -command disable -key wifi.enabled will set key wifi.enabled=0
+# 'batocera-settings --command load --key wifi.enabled' will print out 0 or 1
+# 'batocera-settings --command write --key wifi.ssid -value "This is my NET"' will set 'wlan.ssid=This is my NET'
+# 'batocera-settings enable wifi.ssid' will remove # from  configfile (activate)
+# 'batocera-settings disable wifi.enabled' will set key wifi.enabled=0
+# 'botocera-settings /myown/config.file --command status --key my.key' will output status of own config.file and my.key 
 
+# by cyperghost - 2019/06/25
+
+##### INITS #####
 BATOCERA_CONFIGFILE="/userdata/system/batocera.conf"
 COMMENT_CHAR="#"
+##### INITS #####
+
+##### Function Calls #####
 
 function get_config() {
-     #Will look for key.value and #key.value for only one occourance
+     #Will look for key.value and #key.value for only one occurrence
      #If the character is the COMMENT CHAR then set value to it
      #Otherwise strip to equal-char
     local val
@@ -47,17 +56,17 @@ function get_config() {
 }
 
 function set_config() {
-     #Will look for first key.name at line beginnng and write value to it
+     #Will look for first key.name at line beginning and write value to it
      sed -i "1,/^\(\s*$1\s*=\).*/s//\1$2/" "$BATOCERA_CONFIGFILE"
 }
 
 function uncomment_config() {
-     #Will look for first Comment Char at line beginnng and remove it
+     #Will look for first Comment Char at line beginning and remove it
      sed -i "1,/^$COMMENT_CHAR\(\s*$1\)/s//\1/" "$BATOCERA_CONFIGFILE"
 }
 
 function comment_config() {
-     #Will look for first key.name at line beginnng and add a comment char to it
+     #Will look for first key.name at line beginning and add a comment char to it
      sed -i "1,/^\(\s*$1\)/s//$COMMENT_CHAR\1/" "$BATOCERA_CONFIGFILE"
 }
 
@@ -75,15 +84,14 @@ function check_argument() {
 
 function dash_style() {
     #This function is needed to "simulate" the python script with single dash
-    #commands. It will also accept the more common posix double dashes
-    
-    #Set array for commands according given arguments
-    local array
-    [[ ${#@} -gt 4 ]] && array=(--command --key --value) || array=(--command --key)
+    #commands. It will also accept the more common posix double dashes   
+    #Accept dashes and double dashes and build new array ii with parameter set
+    #The else-branch can be used for the shortform
 
-    #accept dashes and double dashes and build new array ii with parameter set
-    for i in ${array[@]}; do
-        if [[ "$i" =~ ^\-{0,1}${1,,} ]]; then
+    for i in --command --key --value; do
+        if [[ -z "$1" ]]; then
+            continue 
+        elif [[ "$i" =~ ^-{0,1}"${1,,}" ]]; then
             check_argument $1 $2
             [[ $? -eq 0 ]] || exit 1
             ii+=("$2")
@@ -122,8 +130,9 @@ val=" Usage of BASE COMMAND:
 echo "$val"
 
 }
+##### Function Calls #####
 
-# MAIN
+##### MAIN FUNCTION #####
 function main() {
 
     #Filename parsed?
@@ -134,8 +143,7 @@ function main() {
        [[ -f "$BATOCERA_CONFIGFILE" ]] || { echo "not found: $BATOCERA_CONFIGFILE" >&2; exit 2; }
     fi
 
-    #How much arguments are parsed, up to 6 then it is the long format
-    #up to 3 then it is the short format
+    #How much arguments are parsed
     if [[ ${#@} -eq 0 || ${#@} -gt 6 ]]; then
         usage
         exit 1
@@ -233,6 +241,9 @@ function main() {
         ;;
     esac
 }
+##### MAIN FUNCTION #####
+
+##### MAIN CALL #####
 
 # Prepare arrays from fob python script
 # Keyword for python call is mimic_python
@@ -248,3 +259,5 @@ else
 fi
 
 main "${arr[@]}"
+
+##### MAIN CALL #####
