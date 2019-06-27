@@ -33,7 +33,9 @@ function get_config() {
      #If the character is the COMMENT CHAR then set value to it
      #Otherwise strip to equal-char
     local val
+    local ret
     val="$(grep -E -m1 ^$COMMENT_CHAR?\s*$1\s*= $BATOCERA_CONFIGFILE)"
+    ret=$?
     if [[ "${val:0:1}" == "$COMMENT_CHAR" ]]; then
          val="$COMMENT_CHAR"
     else
@@ -41,6 +43,7 @@ function get_config() {
          val="${val#*=}"
     fi
     echo "$val"
+    return $ret
 }
 
 function set_config() {
@@ -64,29 +67,55 @@ function check_argument() {
         echo >&2
         echo "ERROR: '$1' is missing an argument." >&2
         echo >&2
-        echo "Try '$0 --help' for more info." >&2
+        echo "Just type '$0' to see usage page." >&2
         echo >&2
         return 1
     fi
 }
 
+function dash_style() {
+    #This function is needed to "simulate" the python script with single dash
+    #commands. It will also accept the more common posix double dashes
+    
+    #Set array for commands according given arguments
+    local array
+    [[ ${#@} -gt 4 ]] && array=(--command --key --value) || array=(--command --key)
+
+    #accept dashes and double dashes and build new array ii with parameter set
+    for i in ${array[@]}; do
+        if [[ "$i" =~ ^\-{0,1}${1,,} ]]; then
+            check_argument $1 $2
+            [[ $? -eq 0 ]] || exit 1
+            ii+=("$2")
+            shift 2
+        else
+            ii+=("$1")
+            shift 1
+        fi
+    done
+}
+
+
 function usage() {
 val=" Usage of BASE COMMAND:
 
-           <file> -command <cmd> -key <key> -value <value>
+           <file> --command <cmd> --key <key> --value <value>
 
-           -command    load write enable disable status
-           -key        any key in batocera.conf (kodi.enabled...)
-           -value      any alphanumerical string
-                       use quotation marks to avoid globbing
+           shortform: <file> <cmd> <key> <value>
 
-           For write command -value <value> must be provided
+           --command    load write enable disable status
+           --key        any key in batocera.conf (kodi.enabled...)
+           --value      any alphanumerical string
+                        use quotation marks to avoid globbing
+
+           For write command --value <value> must be provided
 
            exit codes: exit 0  = value is available, proper exit
                        exit 1  = general error
                        exit 2  = file error
+                       exit 10 = value found, but empty
                        exit 11 = value found, but not activated
-                       exit 12 = value not found 
+                       exit 12 = value not found
 
            If you don't set a filename then default is '~/batocera.conf'"
 
@@ -105,65 +134,71 @@ function main() {
        [[ -f "$BATOCERA_CONFIGFILE" ]] || { echo "not found: $BATOCERA_CONFIGFILE" >&2; exit 2; }
     fi
 
-    #First command line parameter set, shift 2
-    [[ "${1,,}" != "-command" ]] && usage && exit 1
-    check_argument $1 $2
-    [[ $? -eq 0 ]] || exit 1
-    command="$2"
-    shift 2
+    #How much arguments are parsed, up to 6 then it is the long format
+    #up to 3 then it is the short format
+    if [[ ${#@} -eq 0 || ${#@} -gt 6 ]]; then
+        usage
+        exit 1
+    else
+        dash_style "$@"
+        command="${ii[0]}"
+        keyvalue="${ii[1]}"
+        newvalue="${ii[2]}"
+        unset ii
+    fi
 
-    #Second command line parameter set, shift
-    [[ "${1,,}" != "-key" ]] && usage && exit 1
-    check_argument $1 $2
-    [[ $? -eq 0 ]] || exit 1
-    keyvalue="$2"
-    shift 2
+    [[ -z $keyvalue ]] && { usage; exit 1; }
 
     # value processing, switch case
     case "$command" in
 
         "read"|"get"|"load")
             val="$(get_config $keyvalue)"
+            ret=$?
             [[ "$val" == "$COMMENT_CHAR" ]] && echo "$val" >&2 && exit 11
-            [[ -z "$val" ]] && exit 12
+            [[ -z "$val" && $ret -eq 0 ]] && exit 10
+            [[ -z "$val" && $ret -eq 1 ]] && exit 12
             [[ -n "$val" ]] && echo "$val" && exit 0
         ;;
 
         "stat"|"status")
             val="$(get_config $keyvalue)"
-            [[ -f "$BATOCERA_CONFIGFILE" ]] && echo "ok: found '$BATOCERA_CONFIGFILE'" >&2|| echo "error: not found '$BATOCERA_CONFIGFILE'" >&2
+            ret=$?
+            [[ -f "$BATOCERA_CONFIGFILE" ]] && echo "ok: found '$BATOCERA_CONFIGFILE'" >&2 || echo "error: not found '$BATOCERA_CONFIGFILE'" >&2
             [[ -w "$BATOCERA_CONFIGFILE" ]] && echo "ok: r/w file '$BATOCERA_CONFIGFILE'" >&2 || echo "error: r/o file '$BATOCERA_CONFIGFILE'" >&2
-            [[ -z "$val" ]] && echo "error: '$keyvalue' not found!" >&2
+            [[ -z "$val" && $ret -eq 1 ]] && echo "error: '$keyvalue' not found!" >&2
+            [[ -z "$val" && $ret -eq 0 ]] && echo "error: '$keyvalue' is empty - use 'comment' command to retrieve" >&2
             [[ "$val" == "$COMMENT_CHAR" ]] && echo "error: '$keyvalue' is commented $COMMENT_CHAR!" >&2 && val=
-            [[ -n "$val" ]] && echo "ok: '$keyvalue' $val" || echo "error: '$keyvalue' not available" >&2
+            [[ -n "$val" ]] && echo "ok: '$keyvalue' $val"
             exit 0
         ;;
 
         "set"|"write"|"save")
-            [[ ${1,,} != "-value" ]] && usage && exit 1
-            check_argument $1 $2
-            [[ $? -eq 0 ]] || exit 1
+            #Is file write protected?
+            [[ -w "$BATOCERA_CONFIGFILE" ]] || { echo "r/o only: $BATOCERA_CONFIGFILE" >&2; exit 2; }
 
-            ! [[ -w "$BATOCERA_CONFIGFILE" ]] && echo "r/o only: $BATOCERA_CONFIGFILE" >&2 && exit 2
+            [[ -z "$newvalue" ]] && echo "error: '$keyvalue' needs value to be setted" >&2 && exit 1
 
             val="$(get_config $keyvalue)"
+            ret=$?
             if [[ "$val" == "$COMMENT_CHAR" ]]; then
                 echo "$keyvalue: hashed out!" >&2
                 uncomment_config "$keyvalue"
-                set_config "$keyvalue" "$2"
-                echo "$keyvalue: set to $2" >&2
+                set_config "$keyvalue" "$newvalue"
+                echo "$keyvalue: set from '$val' to '$newvalue'" >&2
                 exit 0
-            elif [[ -z "$val" ]]; then
+            elif [[ -z "$val" && $ret -eq 1 ]]; then
                 echo "$keyvalue: not found!" >&2
                 exit 12
-            elif [[ "$val" != "$2" ]]; then
-                set_config "$keyvalue" "$2"
+            elif [[ "$val" != "$newvalue" ]]; then
+                set_config "$keyvalue" "$newvalue"
                 exit 0 
             fi
         ;;
 
         "uncomment"|"enable"|"activate")
             val="$(get_config $keyvalue)"
+            ret=$?
             # Boolean
             if [[ "$val" == "$COMMENT_CHAR" ]]; then
                  uncomment_config "$keyvalue"
@@ -171,16 +206,17 @@ function main() {
             elif [[ "$val" == "0" ]]; then
                  set_config "$keyvalue" "1"
                  echo "$keyvalue: boolean set '1'" >&2
-            elif [[ -z "$val" ]]; then
+            elif [[ -z "$val" && $ret -eq 1 ]]; then
                  echo "$keyvalue: not found!" && exit 2
             fi
         ;;
 
         "comment"|"disable"|"remark")
             val="$(get_config $keyvalue)"
+            ret=$?
             # Boolean
             [[ "$val" == "$COMMENT_CHAR" || "$val" == "0" ]] && exit 0
-            if [[ -z "$val" ]]; then
+            if [[ -z "$val" && $ret -eq 1 ]]; then
                 echo "$keyvalue: not found!" >&2 && exit 12
             elif [[ "$val" == "1" ]]; then
                  set_config "$keyvalue" "0"
@@ -199,7 +235,6 @@ function main() {
 }
 
 # Prepare arrays from fob python script
-# Delimiter is |
 # Keyword for python call is mimic_python
 # Attention the unset is needed to eliminate first argument (python basefile)
 
