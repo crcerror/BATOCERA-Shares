@@ -9,6 +9,9 @@ You want to create a default decorations for a RPi 7" DSI touch panel.
 3. start the script `./masslist.sh`
 4. info files will be processed and a directory `resize` is created with links to the png files
 5. Now move the Resize folder with command `mv resize ../default-7inch-DSI`
-6. Activate Decorations folder
+6. Activate Decorations folder and select `default-7inch-DSI`
 
 You can open `masslist.sh` to setup resize factor and renaming/linking of files`
+
+Remember! Linking won't work with FAT32!
+Is this the case then copy the png files into folder!
