@@ -28,10 +28,11 @@
 # 'batocera-settings disable wifi.enabled' will set key wifi.enabled=0
 # 'botocera-settings /myown/config.file --command status --key my.key' will output status of own config.file and my.key 
 
-# by cyperghost - 2019/06/25
+# by cyperghost - 2019/07/01
 
 ##### INITS #####
 BATOCERA_CONFIGFILE="/userdata/system/batocera.conf"
+COMMENT_CHAR_SEARCH="[#|;]"
 COMMENT_CHAR="#"
 ##### INITS #####
 
@@ -43,9 +44,9 @@ function get_config() {
      #Otherwise strip to equal-char
     local val
     local ret
-    val="$(grep -E -m1 ^$COMMENT_CHAR?\s*$1\s*= $BATOCERA_CONFIGFILE)"
+    val="$(grep -E -m1 ^$COMMENT_CHAR_SEARCH?\s*$1\s*= $BATOCERA_CONFIGFILE)"
     ret=$?
-    if [[ "${val:0:1}" == "$COMMENT_CHAR" ]]; then
+    if [[ "$val" =~ $COMMENT_CHAR_SEARCH ]]; then
          val="$COMMENT_CHAR"
     else
          #Maybe here some finetuning to catch key.value = ENTRY without blanks
@@ -62,7 +63,7 @@ function set_config() {
 
 function uncomment_config() {
      #Will look for first Comment Char at line beginning and remove it
-     sed -i "1,/^$COMMENT_CHAR\(\s*$1\)/s//\1/" "$BATOCERA_CONFIGFILE"
+     sed -i "1,/^$COMMENT_CHAR_SEARCH\(\s*$1\)/s//\1/" "$BATOCERA_CONFIGFILE"
 }
 
 function comment_config() {
@@ -143,7 +144,8 @@ function main() {
        [[ -f "$BATOCERA_CONFIGFILE" ]] || { echo "not found: $BATOCERA_CONFIGFILE" >&2; exit 2; }
     fi
 
-    #How much arguments are parsed
+    #How much arguments are parsed, up to 6 then it is the long format
+    #up to 3 then it is the short format
     if [[ ${#@} -eq 0 || ${#@} -gt 6 ]]; then
         usage
         exit 1
