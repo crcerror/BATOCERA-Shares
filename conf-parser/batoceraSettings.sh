@@ -46,7 +46,7 @@ function get_config() {
     local ret
     val="$(grep -E -m1 ^$COMMENT_CHAR_SEARCH?\s*$1\s*= $BATOCERA_CONFIGFILE)"
     ret=$?
-    if [[ "$val" =~ $COMMENT_CHAR_SEARCH ]]; then
+    if [[ "$val" =~ ^$COMMENT_CHAR_SEARCH ]]; then
          val="$COMMENT_CHAR"
     else
          #Maybe here some finetuning to catch key.value = ENTRY without blanks
