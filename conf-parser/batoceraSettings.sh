@@ -157,10 +157,10 @@ function main() {
         unset ii
     fi
 
-    [[ -z $keyvalue ]] && { echo "error: Please prove a proper keyvalue >&2; exit 1; }
+    [[ -z $keyvalue ]] && { echo "error: Please provide a proper keyvalue >&2; exit 1; }
 
     # value processing, switch case
-    case "$command" in
+    case "${command,,}" in
 
         "read"|"get"|"load")
             val="$(get_config $keyvalue)"
