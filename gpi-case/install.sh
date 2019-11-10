@@ -8,9 +8,12 @@ echo
 echo "Install files"
 file_dest="/usr/bin"
 wget -q --show-progress "$git_path/rpi_gpioswitch" -O "$file_dest/rpi_gpioswitch"
+wget -q --show-progress "$git_path/rpi-retroflag-SafeShutdown.py" -O "$file_dest/rpi-retroflag-SafeShutdown"
 wget -q --show-progress "$git_path/rpi-retroflag-GPiCase.py" -O "$file_dest/rpi-retroflag-GPiCase"
 echo "$file_dest/rpi-retroflag-GPiCase: Make file executable"
 chmod +x "$file_dest/rpi-retroflag-GPiCase"
+echo "$file_dest/rpi-retroflag-SafeShutdown: Make file executable"
+chmod +x "$file_dest/rpi-retroflag-SafeShutdown"
 echo
 
 file_dest="/etc/init.d"
