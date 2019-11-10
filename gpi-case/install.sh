@@ -28,3 +28,6 @@ rpi_gpioswitch
 # That's it ....
 echo
 echo "Please reboot now manually"
+echo
+echo "to show selection dialog again type:"
+echo "/etc/init.d/S92switch setup"
