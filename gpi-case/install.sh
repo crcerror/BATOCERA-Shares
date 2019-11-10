@@ -12,8 +12,6 @@ wget -q --show-progress "$git_path/rpi-retroflag-SafeShutdown.py" -O "$file_dest
 wget -q --show-progress "$git_path/rpi-retroflag-GPiCase.py" -O "$file_dest/rpi-retroflag-GPiCase"
 echo "$file_dest/rpi-retroflag-GPiCase: Make file executable"
 chmod +x "$file_dest/rpi-retroflag-GPiCase"
-echo "$file_dest/rpi-retroflag-SafeShutdown: Make file executable"
-chmod +x "$file_dest/rpi-retroflag-SafeShutdown"
 echo
 
 file_dest="/etc/init.d"
@@ -24,10 +22,8 @@ echo
 echo "Making changes permanent..."
 batocera-save-overlay
 
-# Setup conf file
-echo
-echo "Activate RETROFLAG_GPI in batocera.conf"
-batocera-settings set system.power.switch RETROFLAG_GPI
+# Activate Dialog
+rpi_gpioswitch
 
 # That's it ....
 echo
