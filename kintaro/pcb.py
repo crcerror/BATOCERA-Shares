@@ -1,89 +1,63 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-#Copyright 2017 Michael Kirsch
 
 import time
 import os
+import subprocess
+import string
 import RPi.GPIO as GPIO
 
-pcb_components={"LED":7,"FAN":8,"RESET":3,"POWER":5,"CHECK_PCB":10}
-temp_command = 'vcgencmd measure_temp'
-
-class vars():
-    fan_hysteresis = 5
-    fan_starttemp = 60
-    reset_hold_short = 100
-    reset_hold_long = 500
-    debounce_time = 0.01
-    counter_time = 0.01
-
-GPIO.setmode(GPIO.BOARD) #Use the same layout as the pins
+# Initialize
 GPIO.setwarnings(False)
 GPIO.cleanup()
-GPIO.setup(pcb_components["LED"], GPIO.OUT) #LED Output
-GPIO.setup(pcb_components["FAN"], GPIO.OUT) #FAN Output
-GPIO.setup(pcb_components["POWER"], GPIO.IN)  #set pin as input
-GPIO.setup(pcb_components["RESET"], GPIO.IN, pull_up_down=GPIO.PUD_UP) #set pin as input and switch on internal pull up resistor
-GPIO.setup(pcb_components["CHECK_PCB"], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setmode(GPIO.BOARD)
+PCB = 10
+RESET = 3
+POWER = 5
+LED = 7
+FAN = 8
 
-def temp(): #returns the gpu temperature
-    res = os.popen(temp_command).readline()
-    return float((res.replace("temp=", "").replace("'C\n", "")))
+# Setup
+GPIO.setup(PCB, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(RESET, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(POWER, GPIO.IN)
+GPIO.setup(LED, GPIO.OUT)
+GPIO.setup(FAN, GPIO.OUT)
+IGNORE_PWR_OFF = False
+if(GPIO.input(POWER) == "0"):
+	# System was started with power switch off
+	IGNORE_PWR_OFF = True
 
-def toggle(status):  #toggle the led on of off
-    if status == 0:       #the led is inverted
-        GPIO.output(pcb_components["LED"], GPIO.LOW)
-    if status == 1:
-        GPIO.output(pcb_components["LED"], GPIO.HIGH)
+# Turn on LED AND FAN
+GPIO.output(LED, GPIO.HIGH)
+GPIO.output(FAN, GPIO.HIGH)
 
-def blink(amount,interval): #blink the led
-    for x in range(amount):
-        toggle(1)
-        time.sleep(interval)
-        toggle(0)
-        time.sleep(interval)
+# Function that blinks LED once when button press is detected
+def Blink_LED():
+	GPIO.output(LED, GPIO.LOW)
+	time.sleep(0.2)
+	GPIO.output(LED, GPIO.HIGH)
 
-def fan(status):  #switch the fan on or off
-    if status == 1:
-        GPIO.output(pcb_components["FAN"], GPIO.HIGH)
-    if status == 0:
-        GPIO.output(pcb_components["FAN"], GPIO.LOW)
-
-def fancontrol(hysteresis,starttemp):  #read the temp and have a buildin hysteresis
-    if temp() > starttemp:
-        fan(1)
-    if temp() < starttemp-hysteresis:
-        fan(0)
-
-def Falling_Power(channel):
-    time.sleep(0.5)
-    if (GPIO.input(pcb_components["POWER"]) == GPIO.HIGH) and GPIO.input(pcb_components["CHECK_PCB"]) == GPIO.LOW:  # shutdown funktion if the powerswitch is toggled
-        toggle(0)
-        fan(0)
-        os.system("poweroff")
-
-def Falling_Reset(channel):
-    if (GPIO.input(pcb_components["RESET"]) == GPIO.LOW):  # reset function
-        time.sleep(vars.debounce_time)  # debounce time
-        os.system("reboot")
-
-def PCB_Pull(channel):
-    GPIO.cleanup()
-
-if (GPIO.input(pcb_components["POWER"]) == GPIO.HIGH) and GPIO.input(pcb_components["CHECK_PCB"]) == GPIO.LOW:
-    os.system("poweroff")
-
-GPIO.add_event_detect(pcb_components["CHECK_PCB"],GPIO.RISING,callback=PCB_Pull)
-
-time.sleep(1)
-
-if GPIO.input(pcb_components["CHECK_PCB"])==GPIO.LOW: #check if there is an pcb and if there is then attach the interrupts
-    toggle(0.5)
-    GPIO.add_event_detect(pcb_components["RESET"], GPIO.FALLING, callback=Falling_Reset)
-    time.sleep(0.5)
-    GPIO.add_event_detect(pcb_components["POWER"], GPIO.FALLING, callback=Falling_Power)
-
+# Monitor for Inputs
 while True:
-    time.sleep(5)
-    toggle(1)
-    fancontrol(vars.fan_hysteresis , vars.fan_starttemp) # fan starts at 60 degrees and has a 5 degree hysteresis
+	if(GPIO.input(PCB) == "0"):
+		if(GPIO.input(RESET) == "0"):
+			print("Rebooting...")
+			Blink_LED()
+			os.system("batocera-es-swissknife --reboot")
+			break
+		if(GPIO.input(POWER) == "1" and IGNORE_PWR_OFF == True):
+			IGNORE_PWR_OFF = False
+		if(GPIO.input(POWER) == "0" and IGNORE_PWR_OFF == False):
+			print("Shutting down...")
+			Blink_LED()
+			GPIO.output(FAN, GPIO.LOW)
+			os.system("batocera-es-swissknife --shutdown")
+			break
+	else:
+		print("Roshambo Case not found")
+		break
+	time.sleep(0.3)
+
+GPIO.output(FAN, GPIO.LOW)
+GPIO.cleanup()
