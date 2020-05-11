@@ -18,7 +18,8 @@ class vars():
     counter_time = 0.01
 
 GPIO.setmode(GPIO.BOARD) #Use the same layout as the pins
-GPIO.setwarnings(False) 
+GPIO.setwarnings(False)
+GPIO.cleanup()
 GPIO.setup(pcb_components["LED"], GPIO.OUT) #LED Output
 GPIO.setup(pcb_components["FAN"], GPIO.OUT) #FAN Output
 GPIO.setup(pcb_components["POWER"], GPIO.IN)  #set pin as input
