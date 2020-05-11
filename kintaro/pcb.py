@@ -59,7 +59,7 @@ def Falling_Power(channel):
     if (GPIO.input(pcb_components["POWER"]) == GPIO.HIGH) and GPIO.input(pcb_components["CHECK_PCB"]) == GPIO.LOW:  # shutdown funktion if the powerswitch is toggled
         toggle(0)
         fan(0)
-        os.system("echo SHUTDOWN")
+        os.system("poweroff")
 
 def Falling_Reset(channel):
     if (GPIO.input(pcb_components["RESET"]) == GPIO.LOW):  # reset function
