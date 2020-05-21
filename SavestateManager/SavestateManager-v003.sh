@@ -30,7 +30,7 @@ function xml_head()
 {
     echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
     echo "<savestates>"
-    echo "  <all_entries>"$1"</all_entries>
+    echo "  <all_entries>"$1"</all_entries>"
 }
 
 function xml_error()
@@ -56,7 +56,7 @@ function xml_body()
     # aka ... if slotname=SRM >>> battery save
     # or if SRM then use <SRM>path</SRM>
 
-    $((z++)) #counter
+    ((z++)) #counter
     echo "  <state_entry = \"$z\">"
     echo "    <state_path>"$1"</state_path>"
     echo "    <state_name>"$2"</state_name>"
