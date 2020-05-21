@@ -30,6 +30,7 @@ function xml_head()
 {
     echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
     echo "<savestates>"
+    echo "  <all_entries>"$1"</all_entries>
 }
 
 function xml_error()
@@ -55,7 +56,7 @@ function xml_body()
     # aka ... if slotname=SRM >>> battery save
     # or if SRM then use <SRM>path</SRM>
 
-    entry=$((z++))
+    $((z++)) #counter
     echo "  <state_entry = \"$z\">"
     echo "    <state_path>"$1"</state_path>"
     echo "    <state_name>"$2"</state_name>"
@@ -71,7 +72,7 @@ function xml_body()
 readarray -t saves_array < <(find "$sav_path" -type f -regex "$search" | sort -M)
 
 #Building XML head
-xml_head > savestate.xml
+xml_head "${#saves_array[@]}" > savestate.xml
 # Array validity check!
 if [[ ${#saves_array[@]} -eq 0 ]]; then
     xml_error >> savestate.xml
