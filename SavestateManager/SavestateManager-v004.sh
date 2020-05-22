@@ -62,8 +62,6 @@ function xml_body()
     # We can change slotname, if needed
     # aka ... if slotname=SRM >>> battery save
     # or if SRM then use <SRM>path</SRM>
-
-    ((z++)) #counter
     echo "  <state_entry = \"$z\">"
     echo "    <state_path>"$1"</state_path>"
     echo "    <state_name>"$2"</state_name>"
@@ -104,6 +102,7 @@ case ${1,,} in
                 picture_filepath=""
             fi
             #### BUILD XML file
+            ((z++)) #counter
             xml_body "$save_filepath" "$slot_number" "$creation_day" "$creation_time" "$picture_filepath" >> savestate.xml
         done
         xml_foot >> savestate.xml
