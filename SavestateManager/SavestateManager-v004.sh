@@ -78,18 +78,19 @@ function xml_body()
 # Build Array
 readarray -t saves_array < <(find "$sav_path" -type f -regex "$search")
 
-#Building XML head
-xml_head "${#saves_array[@]}" > savestate.xml
-
 # Array validity check!
 if [[ ${#saves_array[@]} -eq 0 ]]; then
+    #Building XML file
+    xml_head "${#saves_array[@]}" > savestate.xml
     xml_error >> savestate.xml
+    xml_foot >> savestate.xml
     exit 1
 fi
 
 case ${1,,} in
     list) #create xml list
-        ### Building XML file
+        #Building XML file
+        xml_head "${#saves_array[@]}" > savestate.xml
         echo "We have ${#saves_array[@]}" entries in array
         for i in "${saves_array[@]}"; do
             save_filepath="$i"
