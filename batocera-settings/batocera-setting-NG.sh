@@ -1,34 +1,7 @@
 #!/bin/bash
 
-# batocera-settings can mimic batoceraSettings.py
-# goal: abolish this python script, it's useless for the sake of the load feature only
-#       get a more user friendly environment for setting, getting and saving keys
-#
-# Usage of BASE COMMAND:
-#           longform:   <filename> --command <cmd> --key <key> --value <value>
-#
-#           shortform:  <file> <cmd> <key> <value>
-#
-#           --command    load write enable disable status
-#           --key        any key in batocera.conf (kodi.enabled...)
-#           --value      any alphanumerical string
-#                        use quotation marks to avoid globbing use slashes escape special characters 
-
-# This script reads only 1st occurrence if string and writes only to this first hit
-#
-# This script uses #-Character to comment values
-#
-# If there is a boolean value (0,1) then then enable and disable command will set the corresponding
-# boolean value.
-
-# Examples:
-# 'batocera-settings --command load --key wifi.enabled' will print out 0 or 1
-# 'batocera-settings --command write --key wifi.ssid -value "This is my NET"' will set 'wlan.ssid=This is my NET'
-# 'batocera-settings enable wifi.ssid' will remove # from  configfile (activate)
-# 'batocera-settings disable wifi.enabled' will set key wifi.enabled=0
-# 'botocera-settings /myown/config.file --command status --key my.key' will output status of own config.file and my.key
-
-# by cyperghost - 2019/12/30
+# by cyperghost - 2019/12/30 - rev 2
+# updated for batocera 29 to NG
 
 ##### INITS #####
 BATOCERA_CONFIGFILE="/userdata/system/batocera.conf"
@@ -135,32 +108,29 @@ echo "$val"
 
 function build_key() {
 
-    [[ $game_flag -eq 0 ]] && ii[0]=
-    [[ $system_flag -eq 0 ]] && { ii[0]=; ii[1]=; }
-
-#echo "Sys: $systemvalue"
-#echo "Gam: $gamevalue"
-#echo "Key: $keyvalue"
-
     ii=("${systemvalue}.\[\"$gamevalue\"\].${keyvalue}"
         "${systemvalue}.${keyvalue}"
         "global.${keyvalue}")
 
+    [[ $game_flag -eq 0 ]] && ii=("${ii[@]:1}")
+    [[ $system_flag -eq 0 ]] && ii=("${ii[@]:2}")
+    [[ ${#ii[@]} -eq 0 ]] && ii="global.${keyvalue}"
+
     for i in "${ii[@]}"; do
-        #echo "$i"
-        if grep -qEo "^$i" "$BATOCERA_CONFIGFILE"; then
-            echo "found: $i"
+        if grep -qEo -m1 "^$i" "$BATOCERA_CONFIGFILE"; then
             keyvalue="$i"
-            break
+            return 0
         fi
     done
+    unset ii
+    return 1
 }
 
 ##### Function Calls #####
 
 ##### MAIN FUNCTION #####
 function main() {
-    #Determine here between the classic mode borm from 4.x versions
+    #Determine here between the classic mode born from 4.x versions
     #and try to make a future proof but simple parser
     # No args -> helppage
     if [[ ${#@} -eq 0 ]]; then
@@ -196,27 +166,31 @@ function main() {
         extend_flag=0
         game_flag=0
         system_flag=0
+        newvalue_flag=0
+        write_flag=0
 
-        while getopts ':r:w:v:g:s:f:e' option
+        while getopts ':r:w:v:g:s:f:eh' option
         do
             case "$option" in
                 :) echo "Missing option argument for -$OPTARG" >&2; exit 2;;
-                f) [[ -n $OPTARG ]] && BATOCERA_CONFIGFILE="$OPTARG" ;;
-                e) echo "Activate extend"; extend_flag=1 ;;
-                w) [[ -n $OPTARG ]] && { command=$option; keyvalue="$OPTARG"; } || echo "Schreiben" ;;
-                r) [[ -n $OPTARG ]] && { command=$option; keyvalue="$OPTARG"; } || echo "nix laden" ;;
-                v) newvalue="$OPTARG" || echo "Missing argument" ;;
-                h) usage; exit ;;
-                g) [[ -n $OPTARG ]] && { gamevalue="$OPTARG"; game_flag=1; };;
-                s) [[ -n $OPTARG ]] && { systemvalue="$OPTARG"; system_flag=1; };;
+                f) BATOCERA_CONFIGFILE="$OPTARG";;
+                e) extend_flag=1;;
+                v) newvalue="$OPTARG"; newvalue_flag=1;;
+                w) command=$option; keyvalue="$OPTARG"; write_flag=1;;
+                r) command=$option; keyvalue="$OPTARG";;
+                h) usage; exit 0;;
+                g) gamevalue="$OPTARG"; game_flag=1;;
+                s) systemvalue="$OPTARG"; system_flag=1;;
                 *) echo "Unimplemented option: -$OPTARG" >&2; exit 1 ;;
             esac
         done
             [[ -z $command ]] && { echo "error: Please provide a proper command" >&2; exit 1; }
             [[ -z $keyvalue ]] && { echo "error: Please provide a proper keyvalue" >&2; exit 1; }
+            [[ $command == "w" && $write_flag -ne $newvalue ]] && { echo "error: Please set value and write command together" >&2; exit 1; }
             [[ -f "$BATOCERA_CONFIGFILE" ]] || { echo "not found: $BATOCERA_CONFIGFILE" >&2; exit 2; }
-            [[ extend_flag -eq 1 ]] && build_key
+            [[ $extend_flag -eq 1 ]] && build_key
             processing
+            exit $?
     fi
 }
 
@@ -309,19 +283,6 @@ function processing() {
 
 ##### MAIN CALL #####
 
-# Prepare arrays from fob python script
-# Keyword for python call is mimic_python
-# Attention the unset is needed to eliminate first argument (python basefile)
-
-if [[ "${#@}" -eq 1 && "$1" =~ "mimic_python" ]]; then
-   #batoceraSettings.py fob
-   readarray -t arr <<< "$1"
-   unset arr[0]
-else
-   #regular call by shell
-   arr=("$@")
-fi
-
-main "${arr[@]}"
+main "$@"
 
 ##### MAIN CALL #####
