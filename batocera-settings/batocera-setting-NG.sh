@@ -101,9 +101,9 @@ function usage() {
 	  -key        any key in batocera.conf (kodi.enabled...)
 	  -value      any alphanumerical string, needed for write command
 
-	Return codes: exit 0  = value found    exit 10 = value empty
-	              exit 1  = general error  exit 11 = value commented out
-	              exit 2  = file error     exit 12 = value not found
+	Return codes: exit 0 = value found     exit 10 = value empty
+	              exit 1 = general error   exit 11 = value commented out
+	              exit 2 = file error      exit 12 = value not found
 	_EOF_
 }
 
@@ -184,6 +184,8 @@ function main() {
                 s) systemvalue="$OPTARG"; system_flag=1;;
                 *) echo "Unimplemented option: -$OPTARG" >&2; exit 1 ;;
             esac
+            [[ $option =~ ^(e) ]] || check_argument "-${option}" "$OPTARG"
+            [[ $? -eq 0 ]] || exit 1
         done
             [[ -z $command ]] && { echo "error: Provide a proper command" >&2; exit 1; }
             [[ -z $keyvalue ]] && { echo "error: Provide a proper keyvalue" >&2; exit 1; }
@@ -285,6 +287,8 @@ function processing() {
 ##### MAIN CALL #####
 
 # Prepare arrays from fob python script
+# Keyword for python call is mimic_python
+# Attention the unset is needed to eliminate first argument (python basefile)
 
 if [[ "${#@}" -eq 1 && "$1" =~ "mimic_python" ]]; then
    #batoceraSettings.py fob
