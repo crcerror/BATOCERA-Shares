@@ -90,10 +90,10 @@ function usage() {
 	  -w   Write 'key' to config file, mandatory parameter -v
 	  -v   Set value to selected 'key', any alphanumeric value
 	  -e   Activate extended mode, needed for parsing game/system specific keys
-	  -g   Any alphanumeric string for game, set quotes to avoid globbing
-	  -s   Any alphanumeric string for system
+	  -g   Any alphanumeric string for game, set quotes to avoid globbing, use -e
+	  -s   Any alphanumeric string for system, use together with 'e'
+	  -a   Append new key and value to a file
 	    This will loop through 'system.["GAME"].key', 'system.key' or 'gloabal.key'
-	    If -e is not set -g and -s are ignored!  
 
 	Classic: $(basename ${0}) [file] -command [cmd] -key [key] -value [value]
 	Classic short: $(basename ${0}) [file] [cmd] [key] [value]
@@ -169,13 +169,15 @@ function main() {
         system_flag=0
         newvalue_flag=0
         write_flag=0
+        append_flag=0
 
-        while getopts ':r:w:v:g:s:f:eh' option
+        while getopts ':r:w:v:g:s:f:eha' option
         do
             case "$option" in
                 :) echo "Missing option argument for -$OPTARG" >&2; exit 1;;
                 f) BATOCERA_CONFIGFILE="$OPTARG";;
                 e) extend_flag=1;;
+                a) append_flag=1;;
                 v) newvalue="$OPTARG"; newvalue_flag=1;;
                 w) command=$option; keyvalue="$OPTARG"; write_flag=1;;
                 r) command=$option; keyvalue="$OPTARG";;
@@ -184,7 +186,7 @@ function main() {
                 s) systemvalue="$OPTARG"; system_flag=1;;
                 *) echo "Unimplemented option: -$OPTARG" >&2; exit 1 ;;
             esac
-            [[ $option =~ ^(e) ]] || check_argument "-${option}" "$OPTARG"
+            [[ $option =~ ^(e|a) ]] || check_argument "-${option}" "$OPTARG"
             [[ $? -eq 0 ]] || exit 1
         done
             [[ -z $command ]] && { echo "error: Provide a proper command" >&2; exit 1; }
@@ -236,9 +238,13 @@ function processing() {
                 set_config "$keyvalue" "$newvalue"
                 echo "$keyvalue: set from '$val' to '$newvalue'" >&2
                 return 0
-            elif [[ -z "$val" && $ret -eq 1 ]]; then
+            elif [[ -z "$val" && $ret -eq 1 && $append_flag -eq 0 ]]; then
                 echo "$keyvalue: not found!" >&2
                 return 12
+            elif [[ -z "$val" && $ret -eq 1 && $append_flag -eq 1 ]]; then
+                [[ -n $(tail -c1 "$BATOCERA_CONFIGFILE") ]] && printf '\n' >> "$BATOCERA_CONFIGFILE"
+                printf "${keyvalue}=${newvalue}\n" >> "$BATOCERA_CONFIGFILE"
+                return $?
             elif [[ "$val" != "$newvalue" ]]; then
                 set_config "$keyvalue" "$newvalue"
                 return 0
@@ -264,7 +270,7 @@ function processing() {
             val="$(get_config $keyvalue)"
             ret=$?
             # Boolean
-            [[ "$val" == "$COMMENT_CHAR" || "$val" == "0" ]] && exit 0
+            [[ "$val" == "$COMMENT_CHAR" || "$val" == "0" ]] && return 0
             if [[ -z "$val" && $ret -eq 1 ]]; then
                 echo "$keyvalue: not found!" >&2 && return 12
             elif [[ "$val" == "1" ]]; then
