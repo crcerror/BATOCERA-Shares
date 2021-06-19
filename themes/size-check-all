@@ -1,0 +1,126 @@
+[root@BATOCERA /userdata/system]# time bash theme_upgrade.sh checkup all
+Calculating first 100kB chunk from: Alekfull-NX
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Art-book
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Artflix
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Batocera-Club
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Ckau-Book
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: ComicScrap
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: DragonBall-TMCTV
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: EpicNoir
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Es-theme-forever
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Flat-Color
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Flat-White
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: GPi-MiniJawn
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: GPi-Next-Level
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: GPi-Next-Pixel
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: GPi-Super-Retroboy
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: GPi-TFT
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: HUDGEM
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Hypertocera-TMCTV
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Hypertocera-arcade-TMCTV
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Minimal
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Next-Level-Remix
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: OmegaDrive
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Playstation-X
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: RetroFix
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: RVGM
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Sega-CD-Mini
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Simple
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Star-Wars-TMCTV
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Tron-TMCTV
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+Calculating first 100kB chunk from: Zoid
+100kB md5 chunk is the same as in local file!
+No Update done!
+
+
+real    0m22.248s
+user    0m5.533s
+sys     0m1.851s
+[root@BATOCERA /userdata/system]#
