@@ -1,17 +1,14 @@
 #!/bin/sh
 
-do_image ()
-{
-    image="/usr/share/batocera/splash/logo-version.png"
-    [ -f "$image" ] && return 0
-    # no image => for ogoa (or any other), logo-version-wxh.png
-    image="/usr/share/batocera/splash/logo-version-"$(batocera-resolution currentResolution)".png"
-    [ -f "$image" ] && return 0
-    return 1
-}
-
 do_start ()
 {
+    image="/usr/share/batocera/splash/logo-version.png"
+    if ! [ -f "$image" ]; then
+        # no image => for ogoa (or any other), logo-version-wxh.png
+        image="/usr/share/batocera/splash/logo-version-"$(batocera-resolution currentResolution)".png"
+        [ -f "$image" ] || exit 1
+    fi
+
     # on some sytems, fb0 is not immediatly loaded, so, keep a chance by waiting a bit
     N=0
     while ! test -e /dev/fb0 -o $N -gt 50
@@ -24,8 +21,7 @@ do_start ()
 
 case "$1" in
     start)
-        do_image
-        [ $? -eq 0 ] && do_start
+        do_start &
         ;;
     stop)
         ;;
