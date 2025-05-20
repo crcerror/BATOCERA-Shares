@@ -42,7 +42,7 @@ case ${2,,} in
     ;;
 
     *)
-        echo "unknown parameter used, use auto, standalone, libretro, random, ma-random 
+        echo "unknown parameter used, use auto, standalone, libretro, random, ma-random"
         exit 1
 esac
 
