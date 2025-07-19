@@ -1,0 +1,47 @@
+#!/bin/bash
+# file-roller mimic for BATOCERA 07/19/2025 cyperghost aka crcerror
+# inital idea and inspired by brunoeduardobrasil
+
+case "$1" in
+    --extract)     FILE="$2" ;;
+    --extract-to)  FILE="$3"; DEST="${2/file:\/\/}" ;;
+    *) yad --title "Error" --geometry=400x100 --text "Action: '$1' is unknown"
+       exit 1
+esac
+
+
+#MimeTypes=application/x-7z-compressed;application/gzip;application/vnd.rar;application/x-tar;application/x-compressed-tar;application/x-xz-compressed-tar;application/x-xz;application/zip;
+
+FILENAME="$(basename "$FILE")"
+EXT="${FILENAME##*.}"
+
+if [[ -z "$DEST" ]]; then
+    DEST=$(yad --title "Choose destination folder" --file --directory)
+    [[ -z "$DEST" ]] && exit 1
+fi
+
+extract_tar_variant() {
+    case "$FILENAME" in 
+        *.tar.gz) tar -xzf "$FILE" -C "$DEST" ;;
+        *.tar.xz) tar -xJf "$FILE" -C "$DEST" ;;
+        *.tar) tar -xf "$FILE" -C "$DEST" ;;
+        *) echo "Unsupported tar variant: $FILENAME"
+    esac
+}
+
+extract_single_compression() {
+    case "$EXT" in
+        gz) gunzip -c "$FILE" > "$DEST/${FILENAME%.gz}" ;;
+        xz) unxz -c "$FILE" > "$DEST/${FILENAME%.xz}" ;;
+        *) echo "Unsupported compression format: $EXT"
+    esac
+}
+
+case "$EXT" in
+    zip) unzip "$FILE" -d "$DEST" ;;
+    rar) unrar x "$FILE" "$DEST/" ;;
+    7z) 7zr x "$FILE" -o "$DEST/" ;;
+    tar|gz|xz) [[ "$FILENAME" == *.tar.* ]] && extract_tar_variant || extract_single_compression ;;
+    *) echo "Unsupported file type: $EXT"
+esac
+
