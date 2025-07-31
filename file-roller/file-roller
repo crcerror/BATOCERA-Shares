@@ -21,12 +21,14 @@
 # inital idea and inspired by brunoeduardobrasil, 07/19/2025 cyperghost aka crcerror
 # ec-codes: ec-0 okay, ec-1 error, ec-10 parameter l used
 # ec-11 archives not supported for extraction, ec-12 archives not supported for showing content
+# ec-21 to 28 -- file extraction error zip rar 7z gz xy tar tar.xz tar.gz
 
 # Is pcmanfm is active then use yad as output. test -t will not work because pcmanfm creates a virtual terminal
 pgrep pcmanfm >/dev/null && TERMINAL=0 || TERMINAL=1
+ret=0
 
 get_extension () {
-    FILENAME="$(basename "${FILE,,}")"
+    FILENAME="$(basename "${1,,}")"
     for EXT in tar.gz tar.xz tar gz xz zip rar 7z; do
         [[ "${FILENAME}" =~ ^.*\."$EXT"$ ]] && { echo $EXT; return 0; }
     done
@@ -35,17 +37,17 @@ get_extension () {
 list_archive () {
     # We try just to obtain the file names with minimal filters
     # For unzip -Z1, unrar lb, 7zr l -ba ... and some awk/sed tools
-    case "$(get_extension)" in
-        zip) readarray -t array < <(unzip -Z1 "$1") ;;
-        rar) readarray -t array < <(unrar lb "$1") ;;
-        7z)  readarray -t array < <(7zr l -ba "$1" | awk '{$1=$2=$3=$4=""; print $0}' |  sed 's/^[ ]*[0-9]*[ ]//') ;;
-        tar) readarray -t array < <(tar -tvf "$1" | awk '{ for(i=6; i<NF; ++i) printf $i" "; print $NF }') ;;
-        *)   [[ $TERMINAL -eq 0 ]] && { yad --title "Error" --text "Archive type is not yet supported.\nFailed to open '$1'"; return 12; }
-             [[ $TERMINAL -eq 1 ]] && { echo "Error: Archive type is not yet supported. Failed to open '$1'"; return 12; }
+    case "$1" in
+        zip) readarray -t array < <(unzip -Z1 "$2") ;;
+        rar) readarray -t array < <(unrar lb "$2") ;;
+        7z)  readarray -t array < <(7zr l -ba "$2" | awk '{$1=$2=$3=$4=""; print $0}' |  sed 's/^[ ]*[0-9]*[ ]//') ;;
+        tar) readarray -t array < <(tar -tvf "$2" | awk '{ for(i=6; i<NF; ++i) printf $i" "; print $NF }') ;;
+        *)   [[ $TERMINAL -eq 0 ]] && { yad --title "Error" --text "Archive type '$1' is not yet supported.\nFailed to open '$2'"; return 12; }
+             [[ $TERMINAL -eq 1 ]] && { echo "Error: Archive type '$1' is not yet supported. Failed to open '$2'"; return 12; }
     esac
 
     # Just output for CLI as list - usefull for further scripting
-    [[ "${2}" == "l" ]] && { printf '%s\n' "${array[@]}"; return 10; }
+    [[ "${3}" == "l" ]] && { printf '%s\n' "${array[@]}"; return 10; }
 
     # Rebuild array with a second column to handle files in yad, set to true if you want checkmarks setted
     readarray -t array <<< $(printf 'FALSE\n%s\n' "${array[@]}")
@@ -59,6 +61,7 @@ list_archive () {
 case "$1" in
     x|X) #for CLI as universal extraction tool
         FILE="$2"; DEST="$3"
+        EXT=$(get_extension "${FILE}") || { echo "Error: Archive type: '$EXT' is not yet supported. Failed to open '$FILE'"; exit 11; }
         [[ -f "$FILE" ]] || { echo "Error! Archive '$FILE' not found"; exit 1; }
         if [[ -z "$DEST" ]]; then
             FILENAME="$(basename "${FILE%.*}")"
@@ -75,28 +78,26 @@ case "$1" in
         [[ -d "$DEST" ]] || { echo "Error! Destionation directory '$DEST' not found"; exit 1; }
     ;;
     --extract)
-        FILE="$2" 
+        FILE="$2"
+        EXT=$(get_extension "${FILE}") || ret=11
         DEST=$(yad --title "Choose destination folder" --file --directory) || exit 1
     ;;
     --extract-to)
         FILE="$3"
+        EXT=$(get_extension "${FILE}") || ret=11
         DEST="${2/file:\/\/}"
     ;;
     --open|open|l|L)
         FILE="$2"
         DEST="$(readlink -f "$(dirname "${FILE}")")"
-        list_archive "$FILE" "${1,,}" || exit $?
+        EXT=$(get_extension "${FILE}") || ret=11
+        list_archive "${EXT,,}" "$FILE" "${1,,}" || exit $?
     ;;
     --add)
-        # We remove $0 and $1, create filename.zip if single dir/file, create subdirname.zip for several files/dirs
+        # We remove $0 and $1, create filename.zip if single dir/file, create subdirname.zip for several files/dirs, we need the work-dir to have the relative pathes
         FILE=("${@:2}")
         DEST="${FILE%/*}"
-        if [[ -z "${DEST}" ]]; then
-            DEST="/root"; cd /
-        else
-            # go to working dir, otherwise zip will use absolute pathes for created dirs
-            cd "${DEST}" || { yad --title "Error" --text "Can't open directory '$DEST'"; exit 1; }
-        fi
+        [[ -n "${DEST}" ]] && { cd "${DEST}" || { yad --title "Error" --text "Can't open directory '$DEST'"; exit 1; }; } || { DEST="/root"; cd /; }
         [[ ${#FILE[@]} -gt 1 ]] && { DEST="${DEST}/$(basename "${DEST}")"; }
         [[ ${#FILE[@]} -eq 1 ]] && { DEST="$(basename "${FILE%.*}")"; }
         [[ -f "${DEST}.zip" ]] && DEST="${DEST}_$(printf '%x' $(date +%s)).zip" || DEST="${DEST}.zip"
@@ -105,16 +106,17 @@ case "$1" in
     ;;
    *)   [[ $TERMINAL -eq 0 ]] && { yad --title "Error" --text "Action: '$1' is unknown"; exit 1; }
         echo "Usage: $(basename "$0") <SWITCHES> [ARCHIVEFILE] {DESTINATION-DIR}"; echo
-        echo "x: extraction of current archivfile"
-        echo "l: list archive content - only zip 7z rar and tar is supported"; echo
-        echo "Supported archives: zip 7z rar tar gz xz tar.gz tar.xz"; echo
-        echo "ec-codes: ec-0 okay, ec-1 error, ec-10 parameter 'l' used"
-        echo "ec-11 archive not supported for extraction, ec-12 archive not supported for listing"
-        echo "ec-2x x = archive type error during extraction"
+        echo "    x: extraction of current archivfile"
+        echo "    l: list archive content"; echo
+        echo "Supported archives for extraction: zip 7z rar tar gz xz tar.gz tar.xz"
+        echo "Supported archives for list/open : zip 7z rar tar"; echo
+        echo "error-codes/return codes:"
+        echo "  ec-0 no error, ec-10 parameter 'l', okay -- ec-1 general error"
+        echo "  ec-11 to 12  -- archive type not supported for extraction, listing"
+        echo "  eec-21 to 28 -- file extraction error zip rar 7z gz xy tar tar.xz tar.gz";echo
         exit 1
 esac
 
-EXT="$(get_extension)" || ret=11
 case $EXT in
     zip) unzip "$FILE" "${files[@]}" -d "$DEST" || ret=21;;
     rar) unrar x "$FILE" "${files[@]}" "$DEST/" || ret=22;;
@@ -125,7 +127,9 @@ case $EXT in
     # Multiple TAR variants
     tar.xz) tar -xJf "$FILE" -C "$DEST" || ret=27;;
     tar.gz) tar -xzf "$FILE" -C "$DEST" || ret=28;;
-    *)   [[ $TERMINAL -eq 0 ]] && { yad --title "Error" --text "Archive type: '$EXT' is not yet supported.\nFailed to open '$FILE'"; }
+    *)   ret=11
+         [[ $TERMINAL -eq 0 ]] && { yad --title "Error" --text "Archive type: '$EXT' is not yet supported.\nFailed to open '$FILE'"; }
          [[ $TERMINAL -eq 1 ]] && { echo "Error: Archive type: '$EXT' is not yet supported. Failed to open '$FILE'"; }
-esac
+    esac
+
 exit $ret
