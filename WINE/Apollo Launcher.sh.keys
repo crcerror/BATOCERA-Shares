@@ -1,0 +1,104 @@
+{
+    "actions_player1": [
+        {
+            "trigger": "b",
+            "type": "key",
+            "target": "KEY_SPACE"
+        },
+        {
+            "trigger": "a",
+            "type": "key",
+            "target": "KEY_ESC"
+        },
+        {
+            "trigger": "joystick1up",
+            "type": "key",
+            "target": "KEY_UP"
+        },
+        {
+            "trigger": "joystick1down",
+            "type": "key",
+            "target": "KEY_DOWN"
+        },
+        {
+            "trigger": "joystick1left",
+            "type": "key",
+            "target": "KEY_TAB"
+        },
+        {
+            "trigger": "joystick1right",
+            "type": "key",
+            "target": "KEY_TAB"
+        },
+        {
+            "trigger": "select",
+            "type": "key",
+            "target": "KEY_SPACE"
+        },
+        {
+            "trigger": "start",
+            "type": "key",
+            "target": "KEY_ENTER"
+        },
+        {
+            "trigger": "joystick2up",
+            "type": "key",
+            "target": "KEY_UP"
+        },
+        {
+            "trigger": "joystick2down",
+            "type": "key",
+            "target": "KEY_DOWN"
+        },
+        {
+            "trigger": "joystick2left",
+            "type": "key",
+            "target": "KEY_TAB"
+        },
+        {
+            "trigger": "joystick2right",
+            "type": "key",
+            "target": "KEY_TAB"
+        },
+        {
+            "trigger": "pageup",
+            "type": "key",
+            "target": "KEY_UP"
+        },
+        {
+            "trigger": "pagedown",
+            "type": "key",
+            "target": "KEY_DOWN"
+        },
+        {
+            "trigger": "up",
+            "type": "key",
+            "target": "KEY_UP"
+        },
+        {
+            "trigger": "down",
+            "type": "key",
+            "target": "KEY_DOWN"
+        },
+        {
+            "trigger": "left",
+            "type": "key",
+            "target": "KEY_TAB"
+        },
+        {
+            "trigger": "right",
+            "type": "key",
+            "target": "KEY_TAB"
+        },
+        {
+            "trigger": "y",
+            "type": "key",
+            "target": "KEY_BACKSPACE"
+        },
+        {
+            "trigger": "x",
+            "type": "key",
+            "target": "KEY_ENTER"
+        }
+    ]
+}

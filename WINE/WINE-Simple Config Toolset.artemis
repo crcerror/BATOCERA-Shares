@@ -1,0 +1,250 @@
+#!/bin/bash
+#This script tries to assist you with creating the autorun.cmd for WINE-GAMES
+#First version was released 14.03.25 only for the purpose for SAVEDIR-entry
+#
+#Later, the selection of EXE, removal and edit of autorun.cmd was added 
+#And last but not least we have a checkmark system of setted games:
+# ✓ --> found autorun.cmd 
+# ✗ --> no autorun.cmd found
+# ? --> can't be 100% sure, because of wsquashfs
+#
+#cyperghost and his second live 14.03.2025
+#
+
+WINEGAMESDIR=/userdata/roms/windows
+WINEPOINTDIR=/userdata/system/wine-bottles/windows
+FILEXTENSION=".*\.\(pc\|wine\|wsquashfs\)"
+DL_BACKTITLE="BATOCERA - WINE: Simple Config Toolset"
+
+#Function selectWindowsGame lets you choose from list and searches for games winepoint
+#it spwawn following variables
+WINEGAME=
+GAMEEXT=
+
+#Function selectAction, lets you choose from a list of action for selected game
+SELECTACTION=
+
+#Function WineDirSelection, lets you navigate through your WINEPOINTGAMEDIR
+SAVEDIR=
+
+#Function WineExeSelection, lets you choose from a list of detected EXEs for selected game
+WINEEXE=
+
+#Funtion getWinePoint, tries to find the WinePoint-Prefix, I don't know the runner so I use find command and gamename
+WPGAMEDIR=
+
+selectWindowsGame(){
+    local i ii cmd ret array cm
+    pushd "$WINEGAMESDIR" > /dev/null || { msgBox "${FUNCNAME[0]}: Could not go to dir: $WINEGAMESDIR"; return 1; }
+
+    readarray -t i < <(find -maxdepth 1 -iregex "$FILEXTENSION" -printf '%f\n' | sort -n)
+    [[ "${#i[@]}" -eq 0 ]] && { msgBox "${FUNCNAME[0]}: Directory $WINEGAMESDIR is empty"; return 1; }
+
+    dialog --stdout --backtitle "${DL_BACKTITLE}" --infobox "\nReading file structure ...\nPlease wait!" 10 0
+
+    for ii in "${i[@]}"; do
+        cm=
+        if [[ -d "$ii" ]]; then
+            #For .wine and .pc directories
+            [[ -f "$ii/autorun.cmd" ]] || { array+=("$ii" "✗    $ii"); continue; }
+            cm="✓"
+            getAutorunContent "$ii/autorun.cmd" CMD && cm="${cm} ✓" || cm="! ✗"
+            getAutorunContent "$ii/autorun.cmd" SAVEDIR && cm="${cm}✓" || cm="${cm}✗"
+            array+=("$ii" "${cm} $ii")
+        elif [[ -f "$ii" ]]; then
+            #for wsquashfs - we don't know if it's inside the squash-file so add a questionmark if not found"
+            [[ -f "${WINEPOINTDIR}/${ii}/autorun.cmd" ]] || { array+=("$ii" "?    $ii"); continue; }
+            cm="✓"
+            getAutorunContent "${WINEPOINTDIR}/${ii}/autorun.cmd" CMD && cm="${cm} ✓" || cm="! ✗"
+            getAutorunContent "${WINEPOINTDIR}/${ii}/autorun.cmd" SAVEDIR && cm="${cm}/✓" || cm="${cm}/?"
+            array+=("$ii" "${cm} $ii")
+        else
+            #Should never happen but maybe someone symlinked or put a file named .wine or .pc in windowsgames
+            array+=("$ii" "✗    $ii")
+        fi
+    done
+
+    cmd=(dialog --stdout --backtitle "${DL_BACKTITLE}" --visit-items \
+                --title "Step 1 - Select your game" --no-tags \
+                --default-item "${WINEGAME}" \
+                --menu "Please choose your game" 0 0 20)
+    WINEGAME=$("${cmd[@]}" "${array[@]}")
+    ret=$?
+    GAMEEXT="${WINEGAME##*.}"
+
+    popd > /dev/null
+    return $ret
+}
+msgBox(){
+    dialog --stdout --backtitle "${DL_BACKTITLE}" \
+           --title " Important! " --msgbox "$1" 10 50
+}
+
+yesnoBox(){
+    dialog --stdout --backtitle "${DL_BACKTITLE}" \
+           --title " Are you sure? " --yesno "$1" 10 50
+}
+
+selectAction(){
+    local i cmd ret
+    i=(1 "Select SaveGame-Folder" 2 "Select Executable-file" 3 "Remove autorun.cmd" \
+       4 "View/Edit autorun.cmd"  5 "Delete WinePrefix" 6 "wsquashfs" )
+    cmd=(dialog --stdout --backtitle "${DL_BACKTITLE}" \
+                --title "Step 2 - Select action for: ${WINEGAME}" \
+                --menu "Please choose action" 0 0 0)
+    SELECTACTION=$("${cmd[@]}" "${i[@]}")
+    ret=$?
+    return $ret
+}
+
+getWinePoint() {
+    #Winepoint depends on file extension - do not blame me for that
+    #it is batocera-wine that used it so
+    local ret=0
+    case "${2,,}" in
+        pc)        WPGAMEDIR=$(find "$WINEPOINTDIR" -name "${1}.wine" -printf '%p\n') || ret=2 ;;
+        wine)      WPGAMEDIR="${WINEGAMESDIR}/${1}" ;;
+        wsquashfs) WPGAMEDIR=$(find "$WINEPOINTDIR" -name "${1}" -printf '%p\n') || ret=2 ;;
+    esac
+    [[ -z "${WPGAMEDIR}" ]] && ret=1
+    return $ret
+}
+
+wineSaveDirSelection(){
+    local ret=1 winegame=$1 gameext=$2 winepointgamedir
+
+    getWinePoint "$winegame" "$gameext" || { ret=$?; msgBox "${FUNCNAME[0]}: Found no winepointdir for ${winegame} in $WINEPOINTDIR"; return $ret; }
+    winepointgamedir="${WPGAMEDIR}"
+
+    until [ $ret -eq 0 ]; do 
+        SAVEDIR=$(dialog --stdout --title "Step 3 - Choose your SaveDir" \
+                  --backtitle "${DL_BACKTITLE}" \
+                  --dselect "${winepointgamedir}/drive_c/" 20 60)
+        ret=$?
+        #Prepare SAVEDIR
+        SAVEDIR="${SAVEDIR/${winepointgamedir}/}" #Strip so we start to write /drive_c
+        [[ "${SAVEDIR: -1}" == "/" ]] && SAVEDIR="${SAVEDIR:1:-1}" || SAVEDIR="${SAVEDIR:1}" #remove first and/or trailing slash
+        [ $ret -eq 1 ] && break || { yesnoBox "Accept selected path:\n${SAVEDIR}"; ret=$?; }
+    done
+    return $ret
+}
+
+wineExeSelection(){
+    local ret=1 cmd filter tmpexe winegamepath=$1
+    pushd "$winegamepath" >/dev/null || { msgBox "${FUNCNAME[0]}: Couldn't got to $winegamepath"; return 2; }
+
+    readarray -t WINEEXE < <(batocera-wine windows autorun-list "${GAMENAME}")
+
+    [[ ${#WINEEXE[@]} -eq 0 ]] && { msgBox "${FUNCNAME[0]}: No executables found in $winegamepath"; return 2; }
+
+    until [ $ret -eq 0 ]; do
+        cmd=(dialog --stdout --backtitle "${DL_BACKTITLE}" \
+                    --title "Step 3 - Choose file: ${WINEGAME}" --no-items \
+                    --menu "Select EXE-File" 0 0 0)
+         tmpexe=$("${cmd[@]}" "${WINEEXE[@]}")
+         ret=$?
+        [ $ret -eq 1 ] && break || { yesnoBox "Accept selected EXE:\n${tmpexe}"; ret=$?; }
+    done
+    popd >/dev/null
+    WINEEXE="$tmpexe"
+    return $ret
+}
+
+writeAutorun() {
+    batocera-settings-set -f "$@" 
+    return $?
+}
+
+getAutorunContent(){
+    #supress writing to stdout
+    batocera-settings-get -f "$@" >/dev/null
+    return $?
+}
+
+while true; do
+    ret=
+    selectWindowsGame || { echo "Aborted Step 1"; exit 1; }
+    selectAction || { echo "Aborted Step 2"; exit 1; }
+    
+    case "$SELECTACTION" in
+        1)  #Select SaveGame Folder
+            wineSaveDirSelection "${WINEGAME}" "${GAMEEXT}"
+            ret=$?
+            [[ $ret -eq 0 ]] && writeAutorun "${WINEGAMESDIR}/${WINEGAME}/autorun.cmd" SAVEDIR "$SAVEDIR"
+            ret=$? 
+        ;;
+        2)  #Select Exe-File
+            wineExeSelection "${WINEGAMESDIR}/${WINEGAME}"
+            ret=$?
+            [[ $ret -eq 0 ]] && writeAutorun "${WINEGAMESDIR}/${WINEGAME}/autorun.cmd" DIR "$(dirname "${WINEEXE}")" CMD "\"$(basename "${WINEEXE}")\""
+            ret=$?
+        ;;
+        3)  #Remove Autorun.cmd
+            case ${GAMEEXT,,} in
+                pc|wine)   path2autorun="${WINEGAMESDIR}/${WINEGAME}/autorun.cmd" ;;
+                wsquashfs) path2autorun="${WINEPOINTDIR}/${WINEGAME}/autorun.cmd" ;;
+            esac
+            if [[ -e "${path2autorun}" ]]; then
+                yesnoBox "Do you really want to remove\nautorun.cmd from game:\n${WINEGAME}?"
+                ret=$?
+                [ $ret -eq 0 ] && rm -f "${path2autorun}" && msgBox "File removed!"
+            else
+                msgBox "There is no autorun.cmd in\n${path2autorun}"
+            fi
+        ;;
+        4)  #Edit Autorun.cmd
+            case "${GAMEEXT,,}" in
+                pc|wine)   path2autorun="${WINEGAMESDIR}/${WINEGAME}/autorun.cmd" ;;
+                wsquashfs) path2autorun="${WINEPOINTDIR}/${WINEGAME}/autorun.cmd" ;;
+            esac
+
+            if [[ -e "$(dirname "${path2autorun}")" ]]; then
+                yesnoBox "You will need a keyboard to edit files\nDo you want to abort?" 
+                ret=$?
+            else
+                ret=2
+            fi
+ 
+            if [ $ret -eq 1 ]; then
+                touch "${path2autorun}" #Create files if none excists
+                dialog --stdout --backtitle "${DL_BACKTITLE}" \
+                       --title " autorun.cmd Editor " \
+                       --editbox "${path2autorun}" 0 0 > /tmp/autorun.cmd
+                ret=$?
+                if [ $ret -eq 0 ]; then
+                    #Delete empty file or remove all empty lines
+                    find "${path2autorun}" -empty -delete # Delete empty files
+                    [[ -f "/tmp/autorun.cmd" ]] && awk 'NF' /tmp/autorun.cmd > "${path2autorun}" && rm -f /tmp/autorun.cmd
+                    msgBox "main; Changes were written to:\n${path2autorun}\nto file autorun.cmd"
+                else
+                   msgBox "main: Nothing written.... to:\n${path2autorun}"
+                fi
+            elif [ $ret -eq 2 ]; then
+                msgBox "main: $(dirname "${path2autorun}") is not available"
+            fi
+        ;;
+        5) #Delete WINEPREFIX
+            if [[ "${GAMEEXT,,}" == "wine" ]]; then
+                msgBox "This will delete the whole game!\nAborted the action...."
+            else
+                getWinePoint "${WINEGAME}" "${GAMEEXT}" 
+                ret=$?
+                if [[ $ret -eq 0 ]]; then
+                    yesnoBox "Do you really want to delete WinePrefix directory:\n${WPGAMEDIR}"
+                    ret=$?
+                    [[ $ret -eq 0 ]] && rm -f "${WPGAMEDIR}" && msgBox "Deleted: ${WPGAMEDIR}"
+                 else
+                    msgBox "main: Found no winepointdir for ${WINEGAME} in ${WINEPOINTDIR}"
+                fi
+            fi
+        ;;
+        6) #WSQUASHFS current game ;;
+            if [[ "${GAMEEXT,,}" == "wsquashfs" ]]; then
+                msgBox "This file is already wsquashfs ...."
+            else
+                batocera-wine windows wine2squashfs "${WINEGAMESDIR}/${WINEGAME}" 2>&1 | dialog --programbox  50 120
+            fi
+        ;;
+    esac
+done
+exit $ret
