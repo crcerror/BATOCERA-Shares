@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Action
+Name=Show md5 Checksum
+Profiles=Desktop
+
+[X-Action-Profile Desktop]
+MimeTypes=all/allfiles
+Exec=bash -c "md5sum %F | yad --text-info"
+

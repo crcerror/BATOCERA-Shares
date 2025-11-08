@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Action
+Name=Create autorun.cmd from dir
+Folders=/userdata/roms/windows*;
+Basenames=*.pc;*.wine;
+Profiles=Batocera
+SelectionCount==1
+
+[X-Action-Profile Batocera]
+MimeTypes=inode/directory
+Exec=bash -c "cd %f; readarray -t a < <(batocera-wine windows autorun-list); f=$(yad --list --column=\"Executable File in $PWD\" \"${a[@]}\" --separator=); [[ -z \"$f\" ]] && exit || { printf 'CMD=\"%%s\"\nDIR=%%s' \"$(basename \"$f\")\" \"$(dirname \"$f\")\" > autorun.cmd; }"

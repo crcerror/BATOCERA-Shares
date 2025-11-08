@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Menu
+Icon=menu
+Name=
+Tooltip=★ Misc. Actions >
+ItemsList=system.md5sum;system.toggle-upperlower;system.toggle-whitespaces;system.dos2unix;

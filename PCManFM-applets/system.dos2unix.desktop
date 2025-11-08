@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Action
+Name=Convert DOS2Unix
+Profiles=Desktop
+
+[X-Action-Profile Desktop]
+MimeTypes=text/plain;application/x-shellscript
+Exec=bash -c "dos2unix -k -q %F"

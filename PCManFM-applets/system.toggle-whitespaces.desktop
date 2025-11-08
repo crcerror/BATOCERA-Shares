@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Action
+Name=Convert spaces to scores
+Profiles=Desktop
+SelectionCount=<50
+
+[X-Action-Profile Desktop]
+MimeTypes=all/allfiles
+Exec=bash -c "cd %d; [[ %b =~ [\ ] ]] && { for f in %B; do mv \"$f\" \"${f// /_}\"; done; } || { for f in %B; do mv \"$f\" \"${f//_/ }\"; done; }"
