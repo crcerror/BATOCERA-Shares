@@ -8,14 +8,14 @@ SelectionCount==1
 
 [X-Action-Profile Batocera]
 MimeTypes=inode/directory
-Exec=bash -c "WINERUNNER=$(batocera-settings-get \"$(printf 'windows[\"%%s\"].wine-runner' %B)\" || echo wine-tkg); WP_DEF=\"/userdata/system/wine-bottles/windows/${WINERUNNER}/default-settings\"; WP_GAME=/userdata/system/wine-bottles/windows/${WINERUNNER}/%B.wine; [[ ! -d \"$WP_DEF\" && ! -d \"$WP_GAME\" ]] && { yad --text \"Error: $WP_DEF and $WP_GAME not found\"; exit; }; [[ -d \"$WP_DEF\" && -d \"$WP_GAME\" ]] && rm -r \"$WP_GAME\"; [[ ! -d \"$WP_DEF\" && -d \"$WP_GAME\" ]] && mv \"$WP_GAME\" \"$WP_DEF\"; [[ -d \"$WP_DEF\" && ! -d \"$WP_GAME\" ]] && ln -s -f \"$WP_DEF\" \"$WP_GAME\"; " 
+Exec=bash -c "WINERUNNER=$(batocera-settings-get \"$(printf 'windows[\"%%s\"].wine-runner' %b)\" || echo wine-tkg); WP_DEF=\"/userdata/system/wine-bottles/windows/${WINERUNNER}/default-prefix\"; WP_GAME=/userdata/system/wine-bottles/windows/${WINERUNNER}/%b.wine; [[ ! -d \"$WP_DEF\" && ! -d \"$WP_GAME\" ]] && { yad --text \"Error: $WP_DEF and $WP_GAME not found\"; exit; }; [[ -d \"$WP_DEF\" && -d \"$WP_GAME\" ]] && { yad --text \"This will remove Prefix: $WP_GAME\" && rm -r \"$WP_GAME\" || exit; }; [[ ! -d \"$WP_DEF\" && -d \"$WP_GAME\" ]] && mv \"$WP_GAME\" \"$WP_DEF\"; [[ -d \"$WP_DEF\" && ! -d \"$WP_GAME\" ]] && ln -s -f \"$WP_DEF\" \"$WP_GAME\" && yad --text \"Game: %b\nPrefix: $WP_GAME\nLinked to: $WP_DEF\" --timeout=10 --timeout-indicator=bottom;" 
 
 # Code in readable manner, these applets needs heavy escaping and other things
 # 08.11.2025 - cyperghost aka crcerror
 #WINERUNNER=$(batocera-settings-get "$(printf 'windows[\"%s\"].wine-runner' "$1")" || echo wine-tkg)
-#WP_DEF="/userdata/system/wine-bottles/windows/${WINERUNNER}/default-settings"
+#WP_DEF="/userdata/system/wine-bottles/windows/${WINERUNNER}/default-prefix"
 #WP_GAME="/userdata/system/wine-bottles/windows/${WINERUNNER}/$1.wine"
 #[[ ! -d "$WP_DEF" && ! -d "$WP_GAME" ]] && { echo "Error"; exit; }
-#[[ -d "$WP_DEF" && -d "$WP_GAME" ]] && rm "$WP_GAME" ..."
-#[[ ! -d "$WP_DEF" && -d "$WP_GAME" ]] && mv "$WP_GAME" "$WP_DEF" ..."
-#[[ -d "$WP_DEF" && ! -d "$WP_GAME" ]] && ln -s "$WP_DEF" "$WP_GAME"
+#[[ -d "$WP_DEF" && -d "$WP_GAME" ]] && rm "$WP_GAME" # asks if you want to remove in yad
+#[[ ! -d "$WP_DEF" && -d "$WP_GAME" ]] && mv "$WP_GAME" "$WP_DEF" 
+#[[ -d "$WP_DEF" && ! -d "$WP_GAME" ]] && ln -s "$WP_DEF" "$WP_GAME" # informs what is has done
