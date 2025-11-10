@@ -1,0 +1,39 @@
+[Desktop Entry]
+Type=Action
+Name=Delete unused prefixes
+Folders=*/windows*;
+Basenames=*.pc;
+Profiles=Batocera
+SelectionCount==1
+
+[X-Action-Profile Batocera]
+MimeTypes=inode/directory
+
+Exec=bash -c "cd /userdata/system/wine-bottles/windows/; while read i; do WR=$(batocera-settings-get \"$(printf 'windows[\"%%s\"].wine-runner' \"$i\")\" || echo wine-tkg); WR_ARRAY+=(\"./$WR/$i.wine\"); done < <(find /userdata/roms/windows -maxdepth 1 -type d -printf '%%P\n'); readarray -t WR_SYS < <(find . -mindepth 2 -maxdepth 2 ! -name default-prefix -printf '%%p\n'); readarray -t WR_ARRAY < <(comm -23 <(printf '%%s\n' \"${WR_SYS[@]}\" | sort ) <(printf '%%s\n' \"${WR_ARRAY[@]}\" | sort )); readarray -t WR_ARRAY < <(comm <(printf '%%s\n' \"${WR_SYS[@]}\" | sort ) <(printf '%%s\n' \"${WR_ARRAY[@]}\" | sort ) | awk -F'\t' '{ if ($1 ~ /^\t*$/) { print \"TRUE\"; print $3 } else { print \"FALSE\"; print $1 }; }'); [[ -z \"${WR_ARRAY[1]}\" ]] && { yad --text \"There are no unused wineprefixes\"; exit; }; readarray -t WR_ARRAY <<<$(yad --list --checklist --print-column=2 --separator= --column=Del:chk --column=WinePrefix:text \"${WR_ARRAY[@]#*\/}\"); [[ -z \"${WR_ARRAY[0]}\" ]] && exit || rm -r -f -- \"${WR_ARRAY[@]}\";"
+
+##!/bin/bash
+## Create WR_ARRAY, it creates a list exactly mimics the filelist from system WinePrefixes
+## wine-runner is taken according batocera.conf, if no entry is found then fallbacl to wine-tkg
+#while read i; do
+#  WR=$(batocera-settings-get "$(printf 'windows[\"%s\"].wine-runner' "$i")" || echo wine-tkg)
+#  WR_ARRAY+=("./$WR/$i.wine")
+#done < <(find /userdata/roms/windows -maxdepth 1 -type d -printf '%P\n')
+
+## List of WinePrefixes with ./<runner>/<wineprefix>.wine
+## max- and mindepth 2 and print path, we avoid to list our dir default-prefix
+#pushd /userdata/system/wine-bottles/windows/ >/dev/null
+#readarray -t WR_SYS < <(find . -mindepth 2 -maxdepth 2 ! -name default-prefix -printf '%p\n')
+#popd >/dev/null
+## Info output
+#echo "Found ${#WR_SYS[@]} entries in wine-bottles"
+#echo "Found ${#WR_ARRAY[@]} games in roms"
+
+## get sorted compare output from file2 so you see unused WinePrefixes
+#readarray -t WR_ARRAY < <(comm -23 <(printf '%s\n' "${WR_SYS[@]}" | sort ) <(printf '%s\n' "${WR_ARRAY[@]}" | sort ))
+#echo ${#WR_ARRAY[@]}
+
+## compare both arrays again, if unused prefix is found it is found in annother column
+## awk look if entries starts with a TAB -> print col 3, if not print col 1 from there push to dialog
+#readarray -t WR_ARRAY < <(comm <(printf '%s\n' "${WR_SYS[@]}" | sort ) <(printf '%s\n' "${WR_ARRAY[@]}" | sort ) | awk -F'\t' '{ if ($1 ~ /^\t*$/) { print $3; print "ON" } else { print $1; print "OFF" }; }')
+#cmd=$(dialog --stdout --no-items --checklist "check that" 0 0 0 "${WR_ARRAY[@]#*\/}")
+#[[ -z "${cmd}" ]] && exit || rm -r -f -- $cmd
